@@ -779,4 +779,264 @@ class ApiService {
       };
     }
   }
+
+  // EVENTS API METHODS
+  
+  // Create event (Staff only)
+  static Future<Map<String, dynamic>> createEvent({
+    required String token,
+    required String title,
+    required String description,
+    required String eventDate,
+    String? eventTime,
+    String? location,
+    required String category,
+    required String targetAudience,
+    List<String>? targetClassIds,
+    required String priority,
+    String? imageUrl,
+  }) async {
+    try {
+      print('📅 Creating event: $title');
+      
+      final Map<String, dynamic> body = {
+        'title': title,
+        'description': description,
+        'eventDate': eventDate,
+        'category': category,
+        'targetAudience': targetAudience,
+        'priority': priority,
+      };
+      
+      if (eventTime != null) body['eventTime'] = eventTime;
+      if (location != null) body['location'] = location;
+      if (targetClassIds != null) body['targetClassIds'] = targetClassIds;
+      if (imageUrl != null) body['imageUrl'] = imageUrl;
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/events/create'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 201) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to create event',
+        };
+      }
+    } catch (e) {
+      print('❌ Create event error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Get events for students
+  static Future<Map<String, dynamic>> getStudentEvents({
+    required String token,
+    int limit = 50,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/events/student/all?limit=$limit'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to fetch events',
+        };
+      }
+    } catch (e) {
+      print('❌ Get student events error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Get events for staff
+  static Future<Map<String, dynamic>> getStaffEvents({
+    required String token,
+    int limit = 50,
+    bool includeInactive = false,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/events/staff/all?limit=$limit&includeInactive=$includeInactive'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to fetch events',
+        };
+      }
+    } catch (e) {
+      print('❌ Get staff events error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Get my created events
+  static Future<Map<String, dynamic>> getMyEvents({
+    required String token,
+    int limit = 50,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/events/my-events?limit=$limit'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to fetch events',
+        };
+      }
+    } catch (e) {
+      print('❌ Get my events error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Get upcoming events
+  static Future<Map<String, dynamic>> getUpcomingEvents({
+    required String token,
+    int limit = 5,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/events/upcoming?limit=$limit'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to fetch events',
+        };
+      }
+    } catch (e) {
+      print('❌ Get upcoming events error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Update event
+  static Future<Map<String, dynamic>> updateEvent({
+    required String token,
+    required String eventId,
+    required Map<String, dynamic> updateData,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/events/$eventId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(updateData),
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to update event',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Delete event
+  static Future<Map<String, dynamic>> deleteEvent({
+    required String token,
+    required String eventId,
+  }) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/events/$eventId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to delete event',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
 }

@@ -3,6 +3,7 @@ import '../models/user_model.dart';
 import '../models/class_model.dart';
 import '../services/api_service.dart';
 import 'mark_attendance_screen.dart';
+import 'staff_event_screen.dart'; // Fixed: was staff_events_screen.dart
 
 class StaffDashboard extends StatefulWidget {
   const StaffDashboard({Key? key}) : super(key: key);
@@ -23,44 +24,46 @@ class _StaffDashboardState extends State<StaffDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> _screens = [
+    final List<Widget> screens = [
       _HomeScreen(user: user),
       _ClassesScreen(user: user),
-      _AttendanceScreen(user: user),
+      _EventsScreen(user: user),
       _ProfileScreen(user: user),
     ];
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: PageView(
-        onPageChanged: (index) {
-          setState(() => _currentIndex = index);
-        },
-        children: _screens,
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: screens,
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(Icons.home_rounded, 'Home', 0),
-                _buildNavItem(Icons.class_rounded, 'Classes', 1),
-                _buildNavItem(Icons.check_circle_rounded, 'Attendance', 2),
-                _buildNavItem(Icons.person_rounded, 'Profile', 3),
-              ],
-            ),
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.dashboard_rounded, 'Dashboard', 0),
+              _buildNavItem(Icons.class_rounded, 'Classes', 1),
+              _buildNavItem(Icons.event_rounded, 'Events', 2),
+              _buildNavItem(Icons.person_rounded, 'Profile', 3),
+            ],
           ),
         ),
       ),
@@ -69,36 +72,32 @@ class _StaffDashboardState extends State<StaffDashboard> {
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final isActive = _currentIndex == index;
-    return GestureDetector(
+    return InkWell(
       onTap: () => setState(() => _currentIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(
-          horizontal: isActive ? 16 : 12,
-          vertical: 8,
-        ),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? Colors.deepPurple : Colors.transparent,
+          color: isActive ? const Color(0xFF6750A4) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
               color: isActive ? Colors.white : Colors.grey[600],
               size: 24,
             ),
-            if (isActive) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.grey[600],
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -109,212 +108,185 @@ class _StaffDashboardState extends State<StaffDashboard> {
 // Home Screen
 class _HomeScreen extends StatelessWidget {
   final User? user;
+
   const _HomeScreen({required this.user});
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 200,
-          floating: false,
-          pinned: true,
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.deepPurple,
-          flexibleSpace: FlexibleSpaceBar(
-            background: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.deepPurple[700]!, Colors.deepPurple[400]!],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF6750A4), Color(0xFF7E57C2)],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
                 ),
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Colors.white,
-                            child: Text(
-                              user?.name[0].toUpperCase() ?? 'S',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                color: Colors.deepPurple,
-                                fontWeight: FontWeight.bold,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome back,',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                user?.name ?? 'Staff',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                user?.designation ?? 'Teacher',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.8),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Colors.white,
+                          child: Text(
+                            user?.name[0].toUpperCase() ?? 'S',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              color: Color(0xFF6750A4),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (user?.subjects != null && user!.subjects!.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: user!.subjects!.map((subject) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  user?.name ?? 'Staff',
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  user?.designation ?? 'Teacher',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              subject,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                        ],
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.all(20),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  const Text(
+                    'Quick Actions',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1F1F1F),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 1.2,
+                    children: [
+                      _QuickActionCard(
+                        icon: Icons.edit_calendar_rounded,
+                        title: 'Mark Attendance',
+                        color: const Color(0xFF6750A4),
+                        onTap: () => _navigateToAttendance(context),
+                      ),
+                      _QuickActionCard(
+                        icon: Icons.event_rounded,
+                        title: 'Events',
+                        color: const Color(0xFF8E24AA),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => StaffEventsScreen(user: user!),
+                            ),
+                          );
+                        },
+                      ),
+                      _QuickActionCard(
+                        icon: Icons.people_rounded,
+                        title: 'View Students',
+                        color: const Color(0xFF1E88E5),
+                        onTap: () => _loadAllStudents(context),
+                      ),
+                      _QuickActionCard(
+                        icon: Icons.analytics_rounded,
+                        title: 'Reports',
+                        color: const Color(0xFF43A047),
+                        onTap: () => _showComingSoon(context, 'Reports'),
                       ),
                     ],
                   ),
-                ),
+                ]),
               ),
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {},
             ),
           ],
         ),
-        SliverPadding(
-          padding: const EdgeInsets.all(20),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              if (user?.subjects != null && user!.subjects!.isNotEmpty) ...[
-                const Text(
-                  'My Subjects',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: user!.subjects!.map((subject) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.deepPurple[400]!, Colors.deepPurple[600]!],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.deepPurple.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        subject,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 32),
-              ],
-              const Text(
-                'Quick Actions',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 16),
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.1,
-                children: [
-                  _QuickActionCard(
-                    icon: Icons.people_rounded,
-                    title: 'Students',
-                    subtitle: 'View all',
-                    gradient: [Colors.blue[400]!, Colors.blue[600]!],
-                    onTap: () => _loadAllStudents(context),
-                  ),
-                  _QuickActionCard(
-                    icon: Icons.check_circle_rounded,
-                    title: 'Attendance',
-                    subtitle: 'Mark now',
-                    gradient: [Colors.green[400]!, Colors.green[600]!],
-                    onTap: () => _navigateToAttendance(context),
-                  ),
-                  _QuickActionCard(
-                    icon: Icons.assignment_rounded,
-                    title: 'Assignments',
-                    subtitle: 'Coming soon',
-                    gradient: [Colors.orange[400]!, Colors.orange[600]!],
-                    onTap: () => _showComingSoon(context, 'Assignments'),
-                  ),
-                  _QuickActionCard(
-                    icon: Icons.grade_rounded,
-                    title: 'Grades',
-                    subtitle: 'Coming soon',
-                    gradient: [Colors.purple[400]!, Colors.purple[600]!],
-                    onTap: () => _showComingSoon(context, 'Grades'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 80),
-            ]),
-          ),
-        ),
-      ],
+      ),
     );
-  }
-
-  void _loadAllStudents(BuildContext context) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    final result = await ApiService.getMyStudents(token: user!.token!);
-    Navigator.pop(context);
-
-    if (result['success']) {
-      final List<dynamic> studentsData = result['data']['students'] ?? [];
-      final students = studentsData.map((s) => Student.fromJson(s)).toList();
-      _showStudentsDialog(context, students);
-    }
   }
 
   void _navigateToAttendance(BuildContext context) async {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF6750A4)),
+      ),
     );
 
     final result = await ApiService.getStaffAssignedClasses(
@@ -330,9 +302,7 @@ class _HomeScreen extends StatelessWidget {
       final classes = assignedClassesData.map((c) => AssignedClass.fromJson(c)).toList();
 
       if (classes.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No classes assigned')),
-        );
+        _showSnackbar(context, 'No classes assigned');
       } else if (classes.length == 1) {
         Navigator.push(
           context,
@@ -350,77 +320,138 @@ class _HomeScreen extends StatelessWidget {
   }
 
   void _showClassSelectionDialog(BuildContext context, List<AssignedClass> classes) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Select Class'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: classes.length,
-            itemBuilder: (context, index) {
-              final cls = classes[index];
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.deepPurple,
-                  child: Text(cls.className, style: const TextStyle(color: Colors.white)),
-                ),
-                title: Text('Class ${cls.fullName}'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MarkAttendanceScreen(
-                        user: user!,
-                        assignedClass: cls,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Select Class',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListView.builder(
+              shrinkWrap: true,
+              itemCount: classes.length,
+              itemBuilder: (context, index) {
+                final cls = classes[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: const Color(0xFF6750A4),
+                      child: Text(
+                        cls.className,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  );
-                },
-              );
-            },
-          ),
+                    title: Text('Class ${cls.fullName}'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MarkAttendanceScreen(
+                            user: user!,
+                            assignedClass: cls,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
   }
 
-  void _showStudentsDialog(BuildContext context, List<Student> students) {
+  void _loadAllStudents(BuildContext context) async {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('All Students (${students.length})'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: students.length,
-            itemBuilder: (context, index) {
-              final student = students[index];
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.deepPurple,
-                  child: Text(
-                    student.name[0].toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
-                  ),
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF6750A4)),
+      ),
+    );
+
+    final result = await ApiService.getMyStudents(token: user!.token!);
+
+    Navigator.pop(context);
+
+    if (result['success']) {
+      final List<dynamic> studentsData = result['data']['students'] ?? [];
+      final students = studentsData.map((s) => Student.fromJson(s)).toList();
+      _showStudentsDialog(context, students);
+    }
+  }
+
+  void _showStudentsDialog(BuildContext context, List<Student> students) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'All Students (${students.length})',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
-                title: Text(student.name),
-                subtitle: Text('Roll: ${student.rollNumber}'),
-              );
-            },
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  itemCount: students.length,
+                  itemBuilder: (context, index) {
+                    final student = students[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: const Color(0xFF6750A4),
+                          child: Text(
+                            student.name[0].toUpperCase(),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(student.name),
+                        subtitle: Text('Roll: ${student.rollNumber} • ${student.fullClassName}'),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('CLOSE'),
-          ),
-        ],
       ),
     );
   }
@@ -441,80 +472,70 @@ class _HomeScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _showSnackbar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 }
 
 class _QuickActionCard extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
-  final List<Color> gradient;
+  final Color color;
   final VoidCallback onTap;
 
   const _QuickActionCard({
     required this.icon,
     required this.title,
-    required this.subtitle,
-    required this.gradient,
+    required this.color,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: gradient,
-          ),
-          borderRadius: BorderRadius.circular(20),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: gradient[0].withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: Colors.white, size: 28),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1F1F1F),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -524,6 +545,7 @@ class _QuickActionCard extends StatelessWidget {
 // Classes Screen
 class _ClassesScreen extends StatefulWidget {
   final User? user;
+
   const _ClassesScreen({required this.user});
 
   @override
@@ -542,13 +564,16 @@ class _ClassesScreenState extends State<_ClassesScreen> {
 
   Future<void> _loadClasses() async {
     setState(() => isLoading = true);
+
     final result = await ApiService.getStaffAssignedClasses(
       token: widget.user!.token!,
       staffId: widget.user!.id,
     );
+
     if (result['success']) {
       final data = result['data'];
       final assignedClassesData = data['assignedClasses'] as List<dynamic>? ?? [];
+
       setState(() {
         classes = assignedClassesData.map((c) => AssignedClass.fromJson(c)).toList();
         isLoading = false;
@@ -561,21 +586,23 @@ class _ClassesScreenState extends State<_ClassesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
           'My Classes',
           style: TextStyle(
-            color: Colors.black87,
+            color: Color(0xFF1F1F1F),
             fontWeight: FontWeight.bold,
           ),
         ),
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF6750A4)),
+            )
           : classes.isEmpty
               ? Center(
                   child: Column(
@@ -599,43 +626,58 @@ class _ClassesScreenState extends State<_ClassesScreen> {
                   itemCount: classes.length,
                   itemBuilder: (context, index) {
                     final cls = classes[index];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: CircleAvatar(
-                          radius: 28,
-                          backgroundColor: Colors.deepPurple,
-                          child: Text(
-                            cls.className,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          'Class ${cls.fullName}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        subtitle: const Text('Tap to view students'),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      elevation: 2,
+                      child: InkWell(
                         onTap: () => _viewStudents(cls),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 28,
+                                backgroundColor: const Color(0xFF6750A4),
+                                child: Text(
+                                  cls.className,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Class ${cls.fullName}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Tap to view students',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.arrow_forward_ios, size: 16),
+                            ],
+                          ),
+                        ),
                       ),
                     );
                   },
@@ -647,7 +689,9 @@ class _ClassesScreenState extends State<_ClassesScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF6750A4)),
+      ),
     );
 
     final result = await ApiService.getMyClassStudents(
@@ -662,119 +706,122 @@ class _ClassesScreenState extends State<_ClassesScreen> {
       final List<dynamic> studentsData = data['students'] ?? [];
       final students = studentsData.map((s) => Student.fromJson(s)).toList();
 
-      showDialog(
+      showModalBottomSheet(
         context: context,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('${cls.fullName} Students'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: students.length,
-              itemBuilder: (context, index) {
-                final student = students[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.deepPurple,
-                    child: Text(
-                      student.name[0].toUpperCase(),
-                      style: const TextStyle(color: Colors.white),
-                    ),
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) => DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) => Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${cls.fullName} Students',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                  title: Text(student.name),
-                  subtitle: Text('Roll: ${student.rollNumber}'),
-                );
-              },
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: students.length,
+                    itemBuilder: (context, index) {
+                      final student = students[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(0xFF6750A4),
+                            child: Text(
+                              student.name[0].toUpperCase(),
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          title: Text(student.name),
+                          subtitle: Text('Roll: ${student.rollNumber}'),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('CLOSE'),
-            ),
-          ],
         ),
       );
     }
   }
 }
 
-// Attendance Screen
-class _AttendanceScreen extends StatelessWidget {
+// Events Screen
+class _EventsScreen extends StatelessWidget {
   final User? user;
-  const _AttendanceScreen({required this.user});
+
+  const _EventsScreen({required this.user});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Attendance',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.check_circle_outline, size: 80, color: Colors.grey[300]),
-            const SizedBox(height: 16),
-            Text(
-              'Attendance History',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Coming Soon',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return StaffEventsScreen(user: user!);
   }
 }
 
-// Profile Screen (same as student)
+// Profile Screen
 class _ProfileScreen extends StatelessWidget {
   final User? user;
+
   const _ProfileScreen({required this.user});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
           'Profile',
           style: TextStyle(
-            color: Colors.black87,
+            color: Color(0xFF1F1F1F),
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.black87),
+            icon: const Icon(Icons.logout, color: Color(0xFF1F1F1F)),
             onPressed: () {
-              Navigator.pushReplacementNamed(context, '/login');
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pushReplacementNamed(context, '/login');
+                      },
+                      child: const Text('Logout'),
+                    ),
+                  ],
+                ),
+              );
             },
           ),
         ],
@@ -800,7 +847,7 @@ class _ProfileScreen extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 50,
-                    backgroundColor: Colors.deepPurple,
+                    backgroundColor: const Color(0xFF6750A4),
                     child: Text(
                       user?.name[0].toUpperCase() ?? 'S',
                       style: const TextStyle(
@@ -849,7 +896,6 @@ class _ProfileScreen extends StatelessWidget {
                 value: user!.subjects!.join(', '),
               ),
             ],
-            const SizedBox(height: 80),
           ],
         ),
       ),
@@ -888,10 +934,10 @@ class _ProfileInfoCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.deepPurple[50],
+              color: const Color(0xFF6750A4).withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: Colors.deepPurple, size: 24),
+            child: Icon(icon, color: const Color(0xFF6750A4), size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(

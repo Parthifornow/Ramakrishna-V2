@@ -1,12 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+
 // IMPORTANT: Firebase must be imported BEFORE routes
 import './config/firebase';
+
 import authRoutes from './routes/auth.routes';
 import staffRoutes from './routes/staff.routes';
 import classRoutes from './routes/class.route';
 import attendanceRoutes from './routes/attendance.routes';
+import eventRoutes from './routes/event.routes';
 
 dotenv.config();
 
@@ -23,6 +26,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/class', classRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/events', eventRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {
@@ -56,6 +60,7 @@ app.listen(PORT, () => {
   console.log(`👥 Staff:  http://localhost:${PORT}/api/staff`);
   console.log(`🏫 Class:  http://localhost:${PORT}/api/class`);
   console.log(`📋 Attendance: http://localhost:${PORT}/api/attendance`);
+  console.log(`📅 Events: http://localhost:${PORT}/api/events`);
 });
 
 export default app;

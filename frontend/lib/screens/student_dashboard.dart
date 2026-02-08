@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import 'student_attendance_screen.dart';
+import 'student_events_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({Key? key}) : super(key: key);
@@ -21,44 +22,46 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> _screens = [
+    final List<Widget> screens = [
       _HomeScreen(user: user),
       _AttendanceScreen(user: user),
-      _CoursesScreen(user: user),
+      _EventsScreen(user: user),
       _ProfileScreen(user: user),
     ];
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: PageView(
-        onPageChanged: (index) {
-          setState(() => _currentIndex = index);
-        },
-        children: _screens,
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: screens,
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(Icons.home_rounded, 'Home', 0),
-                _buildNavItem(Icons.calendar_today_rounded, 'Attendance', 1),
-                _buildNavItem(Icons.book_rounded, 'Courses', 2),
-                _buildNavItem(Icons.person_rounded, 'Profile', 3),
-              ],
-            ),
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.dashboard_rounded, 'Dashboard', 0),
+              _buildNavItem(Icons.calendar_today_rounded, 'Attendance', 1),
+              _buildNavItem(Icons.event_rounded, 'Events', 2),
+              _buildNavItem(Icons.person_rounded, 'Profile', 3),
+            ],
           ),
         ),
       ),
@@ -67,36 +70,32 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final isActive = _currentIndex == index;
-    return GestureDetector(
+    return InkWell(
       onTap: () => setState(() => _currentIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(
-          horizontal: isActive ? 16 : 12,
-          vertical: 8,
-        ),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? Colors.blue : Colors.transparent,
+          color: isActive ? const Color(0xFF1E88E5) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
               color: isActive ? Colors.white : Colors.grey[600],
               size: 24,
             ),
-            if (isActive) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.grey[600],
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -107,174 +106,152 @@ class _StudentDashboardState extends State<StudentDashboard> {
 // Home Screen
 class _HomeScreen extends StatelessWidget {
   final User? user;
+
   const _HomeScreen({required this.user});
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 200,
-          floating: false,
-          pinned: true,
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.blue,
-          flexibleSpace: FlexibleSpaceBar(
-            background: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.blue[700]!, Colors.blue[400]!],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF1E88E5), Color(0xFF42A5F5)],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome back,',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                user?.name ?? 'Student',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Class ${user?.fullClassName ?? 'N/A'}',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.8),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Colors.white,
+                          child: Text(
+                            user?.name[0].toUpperCase() ?? 'S',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              color: Color(0xFF1E88E5),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.all(20),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  const Text(
+                    'Quick Access',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1F1F1F),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 1.2,
                     children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Colors.white,
-                            child: Text(
-                              user?.name[0].toUpperCase() ?? 'S',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                color: Colors.blue,
-                                fontWeight: FontWeight.bold,
-                              ),
+                      _QuickAccessCard(
+                        icon: Icons.calendar_today_rounded,
+                        title: 'Attendance',
+                        color: const Color(0xFF1E88E5),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => StudentAttendanceScreen(user: user!),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  user?.name ?? 'Student',
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Class ${user?.fullClassName ?? 'N/A'}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ],
+                          );
+                        },
+                      ),
+                      _QuickAccessCard(
+                        icon: Icons.event_rounded,
+                        title: 'Events',
+                        color: const Color(0xFF8E24AA),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => StudentEventsScreen(user: user!),
                             ),
-                          ),
-                        ],
+                          );
+                        },
+                      ),
+                      _QuickAccessCard(
+                        icon: Icons.assignment_rounded,
+                        title: 'Assignments',
+                        color: const Color(0xFFFB8C00),
+                        onTap: () => _showComingSoon(context, 'Assignments'),
+                      ),
+                      _QuickAccessCard(
+                        icon: Icons.grade_rounded,
+                        title: 'Grades',
+                        color: const Color(0xFF43A047),
+                        onTap: () => _showComingSoon(context, 'Grades'),
                       ),
                     ],
                   ),
-                ),
+                ]),
               ),
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {},
             ),
           ],
         ),
-        SliverPadding(
-          padding: const EdgeInsets.all(20),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              const SizedBox(height: 8),
-              const Text(
-                'Quick Access',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 16),
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.1,
-                children: [
-                  _QuickAccessCard(
-                    icon: Icons.calendar_today_rounded,
-                    title: 'Attendance',
-                    subtitle: 'View records',
-                    gradient: [Colors.blue[400]!, Colors.blue[600]!],
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StudentAttendanceScreen(user: user!),
-                        ),
-                      );
-                    },
-                  ),
-                  _QuickAccessCard(
-                    icon: Icons.assignment_rounded,
-                    title: 'Assignments',
-                    subtitle: 'Coming soon',
-                    gradient: [Colors.orange[400]!, Colors.orange[600]!],
-                    onTap: () => _showComingSoon(context, 'Assignments'),
-                  ),
-                  _QuickAccessCard(
-                    icon: Icons.grade_rounded,
-                    title: 'Grades',
-                    subtitle: 'Coming soon',
-                    gradient: [Colors.purple[400]!, Colors.purple[600]!],
-                    onTap: () => _showComingSoon(context, 'Grades'),
-                  ),
-                  _QuickAccessCard(
-                    icon: Icons.schedule_rounded,
-                    title: 'Timetable',
-                    subtitle: 'Coming soon',
-                    gradient: [Colors.green[400]!, Colors.green[600]!],
-                    onTap: () => _showComingSoon(context, 'Timetable'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Recent Activity',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _ActivityCard(
-                icon: Icons.book,
-                title: 'New Assignment Posted',
-                subtitle: 'Mathematics - Chapter 5',
-                time: '2 hours ago',
-              ),
-              const SizedBox(height: 12),
-              _ActivityCard(
-                icon: Icons.announcement,
-                title: 'Exam Schedule Updated',
-                subtitle: 'Mid-term examinations',
-                time: '1 day ago',
-              ),
-              const SizedBox(height: 80),
-            ]),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -299,150 +276,57 @@ class _HomeScreen extends StatelessWidget {
 class _QuickAccessCard extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
-  final List<Color> gradient;
+  final Color color;
   final VoidCallback onTap;
 
   const _QuickAccessCard({
     required this.icon,
     required this.title,
-    required this.subtitle,
-    required this.gradient,
+    required this.color,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: gradient,
-          ),
-          borderRadius: BorderRadius.circular(20),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: gradient[0].withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: Colors.white, size: 28),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1F1F1F),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-class _ActivityCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String time;
-
-  const _ActivityCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.time,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: Colors.blue, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            time,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey[500],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -451,6 +335,7 @@ class _ActivityCard extends StatelessWidget {
 // Attendance Screen
 class _AttendanceScreen extends StatelessWidget {
   final User? user;
+
   const _AttendanceScreen({required this.user});
 
   @override
@@ -459,73 +344,66 @@ class _AttendanceScreen extends StatelessWidget {
   }
 }
 
-// Courses Screen
-class _CoursesScreen extends StatelessWidget {
+// Events Screen
+class _EventsScreen extends StatelessWidget {
   final User? user;
-  const _CoursesScreen({required this.user});
+
+  const _EventsScreen({required this.user});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'My Courses',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.book_rounded, size: 80, color: Colors.grey[300]),
-            const SizedBox(height: 16),
-            Text(
-              'Courses Coming Soon',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return StudentEventsScreen(user: user!);
   }
 }
 
 // Profile Screen
 class _ProfileScreen extends StatelessWidget {
   final User? user;
+
   const _ProfileScreen({required this.user});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
           'Profile',
           style: TextStyle(
-            color: Colors.black87,
+            color: Color(0xFF1F1F1F),
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.black87),
+            icon: const Icon(Icons.logout, color: Color(0xFF1F1F1F)),
             onPressed: () {
-              Navigator.pushReplacementNamed(context, '/login');
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pushReplacementNamed(context, '/login');
+                      },
+                      child: const Text('Logout'),
+                    ),
+                  ],
+                ),
+              );
             },
           ),
         ],
@@ -551,7 +429,7 @@ class _ProfileScreen extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 50,
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFF1E88E5),
                     child: Text(
                       user?.name[0].toUpperCase() ?? 'S',
                       style: const TextStyle(
@@ -598,7 +476,6 @@ class _ProfileScreen extends StatelessWidget {
               title: 'Class',
               value: user?.fullClassName ?? 'N/A',
             ),
-            const SizedBox(height: 80),
           ],
         ),
       ),
@@ -637,31 +514,33 @@ class _ProfileInfoCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
+              color: const Color(0xFF1E88E5).withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: Colors.blue, size: 24),
+            child: Icon(icon, color: const Color(0xFF1E88E5), size: 24),
           ),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
