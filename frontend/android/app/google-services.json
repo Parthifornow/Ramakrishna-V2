@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "609805118038",
+    "firebase_url": "https://ramakrishna-b4f4c-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "ramakrishna-b4f4c",
+    "storage_bucket": "ramakrishna-b4f4c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:609805118038:android:e025b20c6e16e3258869f7",
+        "android_client_info": {
+          "package_name": "com.example.frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAd1wMqe2DUaOof8FJAxa4dhu-wONOcK5M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
