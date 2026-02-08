@@ -18,7 +18,7 @@ class StaffEventsScreen extends StatefulWidget {
 class _StaffEventsScreenState extends State<StaffEventsScreen> {
   List<Event> events = [];
   bool isLoading = true;
-  String selectedFilter = 'all'; // 'all', 'my_events', 'upcoming'
+  String selectedFilter = 'all';
 
   @override
   void initState() {
@@ -118,44 +118,87 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
     }
   }
 
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'academic':
+        return Icons.school;
+      case 'sports':
+        return Icons.sports;
+      case 'cultural':
+        return Icons.palette;
+      case 'holiday':
+        return Icons.celebration;
+      case 'exam':
+        return Icons.assignment;
+      default:
+        return Icons.event;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text('Events Management'),
-        backgroundColor: const Color(0xFF6750A4),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadEvents,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Filter Tabs
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildFilterChip('All Events', 'all'),
-                _buildFilterChip('My Events', 'my_events'),
-                _buildFilterChip('Upcoming', 'upcoming'),
-              ],
+      backgroundColor: Colors.grey[50],
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Clean Header matching other screens
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Events Management',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh),
+                        onPressed: _loadEvents,
+                        color: const Color(0xFF00B4D8),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Filter Chips
+                  Row(
+                    children: [
+                      _buildFilterChip('All Events', 'all'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('My Events', 'my_events'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Upcoming', 'upcoming'),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          // Events List
-          Expanded(
+            // Events List
+            Expanded(
             child: isLoading
                 ? const Center(
                     child: CircularProgressIndicator(
-                      color: Color(0xFF6750A4),
+                      color: Color(0xFF00B4D8), // Changed from purple to blue
                     ),
                   )
                 : events.isEmpty
@@ -177,20 +220,12 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Create your first event!',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[500],
-                              ),
-                            ),
                           ],
                         ),
                       )
                     : RefreshIndicator(
                         onRefresh: _loadEvents,
-                        color: const Color(0xFF6750A4),
+                        color: const Color(0xFF00B4D8), // Changed from purple to blue
                         child: ListView.builder(
                           padding: const EdgeInsets.all(16),
                           itemCount: events.length,
@@ -203,6 +238,7 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
           ),
         ],
       ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final result = await Navigator.push(
@@ -211,37 +247,40 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
               builder: (context) => CreateEventScreen(user: widget.user),
             ),
           );
-          
+
           if (result == true) {
             _loadEvents();
           }
         },
-        backgroundColor: const Color(0xFF6750A4),
-        icon: const Icon(Icons.add),
-        label: const Text('Create Event'),
+        backgroundColor: const Color(0xFF00B4D8), // Changed from purple to blue
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Create Event', style: TextStyle(color: Colors.white)),
       ),
     );
   }
 
   Widget _buildFilterChip(String label, String value) {
     final isSelected = selectedFilter == value;
-    return InkWell(
-      onTap: () {
-        setState(() => selectedFilter = value);
-        _loadEvents();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF6750A4) : Colors.grey[200],
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey[700],
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            fontSize: 13,
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() => selectedFilter = value);
+          _loadEvents();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF00B4D8) : Colors.grey[200], // Changed from purple to blue
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.grey[700],
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              fontSize: 13,
+            ),
           ),
         ),
       ),
@@ -264,7 +303,7 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -286,21 +325,14 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with category badge
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: categoryColor.withOpacity(0.1),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-              ),
-              child: Row(
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row
+              Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -317,14 +349,14 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
                         Icon(
                           _getCategoryIcon(event.category),
                           color: Colors.white,
-                          size: 16,
+                          size: 14,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           event.categoryDisplay,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -334,211 +366,178 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
+                      horizontal: 10,
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: priorityColor.withOpacity(0.2),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: priorityColor),
+                      border: Border.all(color: priorityColor, width: 1.5),
                     ),
                     child: Text(
                       event.priority.toUpperCase(),
                       style: TextStyle(
                         color: priorityColor,
-                        fontSize: 10,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 12),
 
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Title
+              Text(
+                event.title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Description
+              Text(
+                event.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Date and Time
+              Row(
                 children: [
+                  Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 8),
                   Text(
-                    event.title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    event.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    eventDate != null
+                        ? DateFormat('MMM d, yyyy').format(eventDate)
+                        : event.eventDate,
                     style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
+                      fontSize: 13,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  if (event.eventTime != null) ...[
+                    const SizedBox(width: 16),
+                    Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    Text(
+                      event.eventTime!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
 
-                  // Date and Time
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      Text(
-                        eventDate != null
-                            ? DateFormat('MMM d, yyyy').format(eventDate)
-                            : event.eventDate,
+              if (event.location != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        event.location!,
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      if (event.eventTime != null) ...[
-                        const SizedBox(width: 16),
-                        Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-                        const SizedBox(width: 8),
+                    ),
+                  ],
+                ),
+              ],
+
+              const SizedBox(height: 12),
+
+              // Footer
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.people,
+                          size: 14,
+                          color: Colors.grey[700],
+                        ),
+                        const SizedBox(width: 6),
                         Text(
-                          event.eventTime!,
+                          _getTargetText(event.targetAudience),
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 11,
                             color: Colors.grey[700],
                           ),
                         ),
                       ],
-                    ],
-                  ),
-
-                  if (event.location != null) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            event.location!,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[700],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
                     ),
-                  ],
-
-                  const SizedBox(height: 12),
-
-                  // Footer
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              _getTargetIcon(event.targetAudience),
-                              size: 14,
-                              color: Colors.grey[700],
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _getTargetText(event.targetAudience),
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Spacer(),
-                      if (isMyEvent) ...[
-                        IconButton(
-                          icon: const Icon(Icons.delete, size: 20),
-                          color: Colors.red,
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Delete Event'),
-                                content: const Text(
-                                  'Are you sure you want to delete this event?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      _deleteEvent(event.id);
-                                    },
-                                    child: const Text(
-                                      'Delete',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ],
                   ),
+                  const Spacer(),
+                  if (isMyEvent)
+                    IconButton(
+                      icon: const Icon(Icons.delete, size: 20),
+                      color: Colors.red,
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            title: const Text('Delete Event'),
+                            content: const Text(
+                              'Are you sure you want to delete this event?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _deleteEvent(event.id);
+                                },
+                                child: const Text(
+                                  'Delete',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'academic':
-        return Icons.school;
-      case 'sports':
-        return Icons.sports;
-      case 'cultural':
-        return Icons.palette;
-      case 'holiday':
-        return Icons.celebration;
-      case 'exam':
-        return Icons.assignment;
-      default:
-        return Icons.event;
-    }
-  }
-
-  IconData _getTargetIcon(String target) {
-    switch (target) {
-      case 'all':
-        return Icons.public;
-      case 'students':
-        return Icons.school;
-      case 'staff':
-        return Icons.work;
-      case 'specific_class':
-        return Icons.class_;
-      default:
-        return Icons.people;
-    }
   }
 
   String _getTargetText(String target) {

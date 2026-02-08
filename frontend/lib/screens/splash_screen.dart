@@ -108,7 +108,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 child: const Column(
                   children: [
                     Text(
-                      'Student Management',
+                      'Ramakrishna School',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -118,7 +118,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'System',
+                      'NLR',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w300,
