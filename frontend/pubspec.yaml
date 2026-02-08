@@ -17,6 +17,7 @@ dependencies:
   firebase_auth: ^4.16.0
   # HTTP requests
   http: ^1.1.0
+  intl: ^0.18.0 
   
   # State management (optional, if needed)
   provider: ^6.1.1

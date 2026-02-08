@@ -206,6 +206,258 @@ class ApiService {
     }
   }
 
+  // ATTENDANCE API METHODS
+  
+  // Mark attendance for a class
+  static Future<Map<String, dynamic>> markAttendance({
+    required String token,
+    required String classId,
+    required String date,
+    required List<Map<String, dynamic>> attendance,
+    required String markedBy,
+    String? subject,
+    String? period,
+    String? staffName,
+  }) async {
+    try {
+      print('📝 Marking attendance for class $classId on $date');
+      
+      final Map<String, dynamic> body = {
+        'classId': classId,
+        'date': date,
+        'attendance': attendance,
+        'markedBy': markedBy,
+      };
+      
+      if (subject != null) body['subject'] = subject;
+      if (period != null) body['period'] = period;
+      if (staffName != null) body['staffName'] = staffName;
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/attendance/mark'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      final responseData = jsonDecode(response.body);
+      print('📦 Mark attendance response: $responseData');
+
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to mark attendance',
+        };
+      }
+    } catch (e) {
+      print('❌ Mark attendance error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Get attendance for a specific class and date
+  static Future<Map<String, dynamic>> getClassAttendance({
+    required String token,
+    required String classId,
+    required String date,
+    String? subject,
+    String? period,
+  }) async {
+    try {
+      print('📖 Fetching attendance for class $classId on $date');
+      
+      var url = '$baseUrl/attendance/class/$classId/date/$date';
+      final queryParams = <String, String>{};
+      
+      if (subject != null) queryParams['subject'] = subject;
+      if (period != null) queryParams['period'] = period;
+      
+      if (queryParams.isNotEmpty) {
+        url += '?' + queryParams.entries.map((e) => '${e.key}=${e.value}').join('&');
+      }
+      
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+      print('📦 Get attendance response: $responseData');
+
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to fetch attendance',
+        };
+      }
+    } catch (e) {
+      print('❌ Get attendance error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Get attendance history for a class
+  static Future<Map<String, dynamic>> getClassAttendanceHistory({
+    required String token,
+    required String classId,
+    int limit = 30,
+    String? subject,
+  }) async {
+    try {
+      print('📚 Fetching attendance history for class $classId');
+      
+      var url = '$baseUrl/attendance/class/$classId/history?limit=$limit';
+      if (subject != null) {
+        url += '&subject=$subject';
+      }
+      
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to fetch history',
+        };
+      }
+    } catch (e) {
+      print('❌ Get history error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Get student's attendance record
+  static Future<Map<String, dynamic>> getStudentAttendance({
+    required String token,
+    required String studentId,
+    int limit = 100,
+  }) async {
+    try {
+      print('👨‍🎓 Fetching attendance for student $studentId');
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/attendance/student/$studentId?limit=$limit'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to fetch attendance',
+        };
+      }
+    } catch (e) {
+      print('❌ Get student attendance error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Get attendance summary for a class
+  static Future<Map<String, dynamic>> getClassAttendanceSummary({
+    required String token,
+    required String classId,
+  }) async {
+    try {
+      print('📊 Fetching attendance summary for class $classId');
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/attendance/class/$classId/summary'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to fetch summary',
+        };
+      }
+    } catch (e) {
+      print('❌ Get summary error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Get staff attendance summary
+  static Future<Map<String, dynamic>> getStaffAttendanceSummary({
+    required String token,
+  }) async {
+    try {
+      print('📊 Fetching staff attendance summary');
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/attendance/staff/summary'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'Failed to fetch summary',
+        };
+      }
+    } catch (e) {
+      print('❌ Get summary error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
   // Get all classes
   static Future<Map<String, dynamic>> getAllClasses({
     required String token,
@@ -291,7 +543,6 @@ class ApiService {
       final responseData = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        // FIXED: Return backend response directly
         return responseData;
       } else {
         return {
@@ -324,7 +575,6 @@ class ApiService {
       final responseData = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        // Return the response directly without wrapping
         return responseData;
       } else {
         return {
@@ -360,7 +610,6 @@ class ApiService {
       print('📦 API Response: $responseData');
 
       if (response.statusCode == 200) {
-        // FIXED: Return backend response directly
         return responseData;
       } else {
         return {
