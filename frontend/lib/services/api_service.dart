@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   // Replace with your backend URL
-  static const String baseUrl = 'http://10.187.61.124:3000/api';
+  static const String baseUrl = 'http://10.242.56.124:3000/api';
 
   // Pre-register - Save user data before phone verification
   static Future<Map<String, dynamic>> preRegister({

@@ -3,7 +3,7 @@
 
 const fetch = require('node-fetch');
 
-const API_BASE_URL = 'http://10.187.61.124:3000/api';
+const API_BASE_URL = 'http://10.242.56.124:3000/api';
 
 // Replace this with the actual staff ID from Firebase
 const STAFF_ID = 'GNLEEZdF4P4SjiJWjKB7'; // The "Teach" user ID from your screenshot
