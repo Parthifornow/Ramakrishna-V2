@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
-import '../models/attendance_model.dart';
-import '../services/api_service.dart';
+import '../providers/attendance_provider.dart';
 
-class StudentAttendanceScreen extends StatefulWidget {
+class StudentAttendanceScreen extends ConsumerStatefulWidget {
   final User user;
 
   const StudentAttendanceScreen({
@@ -13,60 +13,28 @@ class StudentAttendanceScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<StudentAttendanceScreen> createState() => _StudentAttendanceScreenState();
+  ConsumerState<StudentAttendanceScreen> createState() => _StudentAttendanceScreenState();
 }
 
-class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
-  StudentAttendanceData? attendanceData;
-  bool isLoading = true;
-
+class _StudentAttendanceScreenState extends ConsumerState<StudentAttendanceScreen> {
   @override
   void initState() {
     super.initState();
-    _loadAttendance();
-  }
-
-  Future<void> _loadAttendance() async {
-    setState(() => isLoading = true);
-
-    try {
-      final result = await ApiService.getStudentAttendance(
-        token: widget.user.token!,
+    // Load attendance data
+    Future.microtask(() {
+      ref.read(attendanceProvider.notifier).loadStudentAttendance(
         studentId: widget.user.id,
-        limit: 100,
       );
-
-      if (result['success'] && result['data'] != null) {
-        setState(() {
-          attendanceData = StudentAttendanceData.fromJson(result['data']);
-        });
-      } else {
-        _showSnackbar(result['message'] ?? 'Failed to load attendance', Colors.red);
-      }
-    } catch (e) {
-      _showSnackbar('Error loading attendance data', Colors.red);
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
-
-  void _showSnackbar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    });
   }
 
   Color _getBarColor(int index) {
     final colors = [
-      const Color(0xFF00B4D8), // Primary Blue
-      const Color(0xFF0096C7), // Darker Blue
-      const Color(0xFF48CAE4), // Light Blue
-      const Color(0xFF90E0EF), // Very Light Blue
-      const Color(0xFF00B4D8).withOpacity(0.7), // Transparent Blue
+      const Color(0xFF00B4D8),
+      const Color(0xFF0096C7),
+      const Color(0xFF48CAE4),
+      const Color(0xFF90E0EF),
+      const Color(0xFF00B4D8).withOpacity(0.7),
     ];
     return colors[index % colors.length];
   }
@@ -81,13 +49,15 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final attendanceState = ref.watch(attendanceProvider);
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Clean Modern Header
+            // Header
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -125,14 +95,16 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
             // Content
             Expanded(
-              child: isLoading
+              child: attendanceState.isLoading
                   ? const Center(
                       child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
                     )
-                  : attendanceData == null
+                  : attendanceState.data == null
                       ? const Center(child: Text('No attendance data available'))
                       : RefreshIndicator(
-                          onRefresh: _loadAttendance,
+                          onRefresh: () async {
+                            await ref.read(attendanceProvider.notifier).refresh(widget.user.id);
+                          },
                           color: const Color(0xFF00B4D8),
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
@@ -149,8 +121,8 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                       Expanded(
                                         child: _buildStatCard(
                                           'Total Classes',
-                                          attendanceData!.subjectWise.isNotEmpty
-                                              ? attendanceData!.subjectWise.first.totalDays.toString()
+                                          attendanceState.data!.subjectWise.isNotEmpty
+                                              ? attendanceState.data!.subjectWise.first.totalDays.toString()
                                               : '0',
                                           Icons.calendar_month,
                                           const Color(0xFF00B4D8),
@@ -160,8 +132,8 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                       Expanded(
                                         child: _buildStatCard(
                                           'Present',
-                                          attendanceData!.subjectWise.isNotEmpty
-                                              ? attendanceData!.subjectWise.first.presentDays.toString()
+                                          attendanceState.data!.subjectWise.isNotEmpty
+                                              ? attendanceState.data!.subjectWise.first.presentDays.toString()
                                               : '0',
                                           Icons.check_circle,
                                           Colors.green,
@@ -173,7 +145,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
                                 const SizedBox(height: 24),
 
-                                // Subject-wise Attendance Title
+                                // Subject-wise Attendance
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 20),
                                   child: Text(
@@ -188,8 +160,8 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                 const SizedBox(height: 16),
 
                                 // Subject Cards
-                                if (attendanceData!.subjectWise.isNotEmpty)
-                                  ...attendanceData!.subjectWise.asMap().entries.map((entry) {
+                                if (attendanceState.data!.subjectWise.isNotEmpty)
+                                  ...attendanceState.data!.subjectWise.asMap().entries.map((entry) {
                                     final index = entry.key;
                                     final subject = entry.value;
                                     final percentage = subject.attendancePercentage;
@@ -276,7 +248,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                             ],
                                           ),
                                           const SizedBox(height: 12),
-                                          // Progress Bar
                                           ClipRRect(
                                             borderRadius: BorderRadius.circular(4),
                                             child: LinearProgressIndicator(
@@ -293,33 +264,23 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
                                 const SizedBox(height: 24),
 
-                                // Attendance History Title
+                                // Recent Records
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Recent Records',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.grey[800],
-                                        ),
-                                      ),
-                                      if (attendanceData!.allRecords.length > 10)
-                                        TextButton(
-                                          onPressed: () {},
-                                          child: const Text('View All'),
-                                        ),
-                                    ],
+                                  child: Text(
+                                    'Recent Records',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[800],
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 12),
 
                                 // Attendance Records
-                                if (attendanceData!.allRecords.isNotEmpty)
-                                  ...attendanceData!.allRecords.take(10).map((record) {
+                                if (attendanceState.data!.allRecords.isNotEmpty)
+                                  ...attendanceState.data!.allRecords.take(10).map((record) {
                                     final date = _parseDate(record.date);
                                     final isPresent = record.status == 'present';
 
@@ -408,15 +369,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                               ],
                                             ),
                                           ),
-                                          if (date != null)
-                                            Text(
-                                              DateFormat('HH:mm').format(date),
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: Colors.grey[600],
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
                                         ],
                                       ),
                                     );

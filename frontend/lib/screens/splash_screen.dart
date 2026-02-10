@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends ConsumerState<SplashScreen> 
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -17,7 +19,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   void initState() {
     super.initState();
     
-    // Setup animations
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -37,15 +38,36 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       ),
     );
 
-    // Start animation
     _animationController.forward();
+    _checkAuthAndNavigate();
+  }
 
-    // Navigate to login after 3 seconds
-    Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
+  Future<void> _checkAuthAndNavigate() async {
+    // Show splash for at least 2 seconds
+    await Future.delayed(const Duration(seconds: 2));
+    
+    // Check authentication status
+    await ref.read(authProvider.notifier).checkAuthStatus();
+    
+    if (!mounted) return;
+
+    final authState = ref.read(authProvider);
+    
+    print('🔍 Auth check: isAuthenticated=${authState.isAuthenticated}, user=${authState.user?.name}');
+    
+    if (authState.isAuthenticated && authState.user != null) {
+      // Navigate to appropriate dashboard
+      print('✅ User is logged in, navigating to dashboard');
+      if (authState.user!.isStaff) {
+        Navigator.pushReplacementNamed(context, '/staff-dashboard');
+      } else {
+        Navigator.pushReplacementNamed(context, '/student-dashboard');
       }
-    });
+    } else {
+      // Navigate to login
+      print('❌ No valid session, navigating to login');
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   @override
@@ -74,7 +96,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Animated Logo
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: ScaleTransition(
@@ -102,13 +123,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               ),
               const SizedBox(height: 32),
               
-              // School Name
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: const Column(
                   children: [
                     Text(
-                      'Ramakrishna School',
+                      'School Management',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -118,7 +138,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'NLR',
+                      'System',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w300,
@@ -131,7 +151,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               ),
               const SizedBox(height: 48),
               
-              // Loading Indicator
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: const SizedBox(

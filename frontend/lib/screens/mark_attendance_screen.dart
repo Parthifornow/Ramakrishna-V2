@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
 import '../models/class_model.dart';
 import '../models/attendance_model.dart';
 import '../services/api_service.dart';
+import '../providers/classes_provider.dart';
 
-class MarkAttendanceScreen extends StatefulWidget {
+class MarkAttendanceScreen extends ConsumerStatefulWidget {
   final User user;
   final AssignedClass assignedClass;
 
@@ -16,10 +18,10 @@ class MarkAttendanceScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<MarkAttendanceScreen> createState() => _MarkAttendanceScreenState();
+  ConsumerState<MarkAttendanceScreen> createState() => _MarkAttendanceScreenState();
 }
 
-class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
+class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
   List<Student> students = [];
   Map<String, String> attendanceStatus = {};
   bool isLoading = true;
@@ -51,17 +53,16 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     setState(() => isLoading = true);
 
     try {
-      final studentsResult = await ApiService.getMyClassStudents(
-        token: widget.user.token!,
-        classId: widget.assignedClass.classId,
+      // Load from cache or network using Riverpod
+      await ref.read(classesProvider.notifier).loadClassStudents(
+        widget.assignedClass.classId,
       );
 
-      if (studentsResult['success']) {
-        final data = studentsResult['data'];
-        final List<dynamic> studentsData = data['students'] ?? [];
-        
+      final loadedStudents = ref.read(classesProvider).classStudents[widget.assignedClass.classId];
+
+      if (loadedStudents != null) {
         setState(() {
-          students = studentsData.map((s) => Student.fromJson(s)).toList();
+          students = loadedStudents;
           
           for (var student in students) {
             attendanceStatus[student.id] = 'absent';

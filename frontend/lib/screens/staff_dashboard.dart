@@ -1,29 +1,39 @@
 import 'package:flutter/material.dart';
-import '../models/user_model.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
+import '../providers/classes_provider.dart';
+import '../providers/events_provider.dart';
 import '../models/class_model.dart';
-import '../services/api_service.dart';
 import 'mark_attendance_screen.dart';
 import 'staff_event_screen.dart';
 
-class StaffDashboard extends StatefulWidget {
+class StaffDashboard extends ConsumerStatefulWidget {
   const StaffDashboard({Key? key}) : super(key: key);
 
   @override
-  State<StaffDashboard> createState() => _StaffDashboardState();
+  ConsumerState<StaffDashboard> createState() => _StaffDashboardState();
 }
 
-class _StaffDashboardState extends State<StaffDashboard> {
+class _StaffDashboardState extends ConsumerState<StaffDashboard> {
   int _currentIndex = 0;
-  User? user;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    user = ModalRoute.of(context)?.settings.arguments as User?;
+  void initState() {
+    super.initState();
+    // Load initial data
+    Future.microtask(() {
+      final user = ref.read(authProvider).user;
+      if (user != null) {
+        ref.read(classesProvider.notifier).loadStaffClasses(user.id);
+        ref.read(eventsProvider.notifier).loadEvents();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authProvider).user;
+
     final List<Widget> screens = [
       _HomeScreen(user: user),
       _ClassesScreen(user: user),
@@ -106,8 +116,8 @@ class _StaffDashboardState extends State<StaffDashboard> {
 }
 
 // Home Screen
-class _HomeScreen extends StatelessWidget {
-  final User? user;
+class _HomeScreen extends ConsumerWidget {
+  final dynamic user;
 
   const _HomeScreen({required this.user});
 
@@ -119,7 +129,7 @@ class _HomeScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -156,14 +166,6 @@ class _HomeScreen extends StatelessWidget {
                       Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.bookmark_border),
-                            onPressed: () {},
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.star_border),
-                            onPressed: () {},
-                          ),
-                          IconButton(
                             icon: const Icon(Icons.notifications_none),
                             onPressed: () {},
                           ),
@@ -192,45 +194,42 @@ class _HomeScreen extends StatelessWidget {
                 children: [
                   _buildQuickLink(
                     context,
+                    ref,
                     'Mark Attendance',
                     'Take attendance for your classes',
                     Icons.edit_calendar_outlined,
                     const Color(0xFF00B4D8),
-                    () => _navigateToAttendance(context),
+                    () => _navigateToAttendance(context, ref),
                   ),
                   const SizedBox(height: 12),
                   _buildQuickLink(
                     context,
+                    ref,
                     'Events',
                     'View and manage events',
                     Icons.event_outlined,
                     const Color(0xFF00B4D8),
                     () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StaffEventsScreen(user: user!),
-                        ),
-                      );
+                      final dashboard = context.findAncestorStateOfType<_StaffDashboardState>();
+                      dashboard?.setState(() {
+                        dashboard._currentIndex = 2;
+                      });
                     },
                   ),
                   const SizedBox(height: 12),
                   _buildQuickLink(
                     context,
-                    'View Students',
-                    'See all your students',
-                    Icons.people_outlined,
-                    const Color(0xFF00B4D8),
-                    () => _loadAllStudents(context),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildQuickLink(
-                    context,
+                    ref,
                     'My Classes',
                     'View assigned classes',
                     Icons.class_outlined,
                     const Color(0xFF00B4D8),
-                    () => _showComingSoon(context, 'My Classes'),
+                    () {
+                      final dashboard = context.findAncestorStateOfType<_StaffDashboardState>();
+                      dashboard?.setState(() {
+                        dashboard._currentIndex = 1;
+                      });
+                    },
                   ),
                 ],
               ),
@@ -243,6 +242,7 @@ class _HomeScreen extends StatelessWidget {
 
   Widget _buildQuickLink(
     BuildContext context,
+    WidgetRef ref,
     String title,
     String subtitle,
     IconData icon,
@@ -299,30 +299,30 @@ class _HomeScreen extends StatelessWidget {
     );
   }
 
-  void _navigateToAttendance(BuildContext context) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
-      ),
-    );
+  void _navigateToAttendance(BuildContext context, WidgetRef ref) async {
+    final classesState = ref.read(classesProvider);
+    final classes = classesState.classes;
 
-    final result = await ApiService.getStaffAssignedClasses(
-      token: user!.token!,
-      staffId: user!.id,
-    );
-
-    Navigator.pop(context);
-
-    if (result['success']) {
-      final data = result['data'];
-      final assignedClassesData = data['assignedClasses'] as List<dynamic>? ?? [];
-      final classes = assignedClassesData.map((c) => AssignedClass.fromJson(c)).toList();
-
-      if (classes.isEmpty) {
-        _showSnackbar(context, 'No classes assigned');
-      } else if (classes.length == 1) {
+    if (classes.isEmpty) {
+      // Load classes if not loaded
+      final user = ref.read(authProvider).user;
+      if (user != null) {
+        await ref.read(classesProvider.notifier).loadStaffClasses(user.id);
+        final updatedClasses = ref.read(classesProvider).classes;
+        
+        if (updatedClasses.isEmpty) {
+          if (context.mounted) {
+            _showSnackbar(context, 'No classes assigned');
+          }
+          return;
+        }
+        
+        if (context.mounted) {
+          _showClassSelectionDialog(context, ref, updatedClasses);
+        }
+      }
+    } else if (classes.length == 1) {
+      if (context.mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -332,13 +332,15 @@ class _HomeScreen extends StatelessWidget {
             ),
           ),
         );
-      } else {
-        _showClassSelectionDialog(context, classes);
+      }
+    } else {
+      if (context.mounted) {
+        _showClassSelectionDialog(context, ref, classes);
       }
     }
   }
 
-  void _showClassSelectionDialog(BuildContext context, List<AssignedClass> classes) {
+  void _showClassSelectionDialog(BuildContext context, WidgetRef ref, List<AssignedClass> classes) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -404,27 +406,141 @@ class _HomeScreen extends StatelessWidget {
     );
   }
 
-  void _loadAllStudents(BuildContext context) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
+  void _showSnackbar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+}
 
-    final result = await ApiService.getMyStudents(token: user!.token!);
+// Classes Screen
+class _ClassesScreen extends ConsumerWidget {
+  final dynamic user;
 
-    Navigator.pop(context);
+  const _ClassesScreen({required this.user});
 
-    if (result['success']) {
-      final List<dynamic> studentsData = result['data']['students'] ?? [];
-      final students = studentsData.map((s) => Student.fromJson(s)).toList();
-      _showStudentsDialog(context, students);
-    }
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final classesState = ref.watch(classesProvider);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: const Text(
+                'My Classes',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            Expanded(
+              child: classesState.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
+                    )
+                  : classesState.classes.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.class_outlined, size: 80, color: Colors.grey[300]),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No Classes Assigned',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: () async {
+                            if (user != null) {
+                              await ref.read(classesProvider.notifier).loadStaffClasses(
+                                user.id,
+                                forceRefresh: true,
+                              );
+                            }
+                          },
+                          color: const Color(0xFF00B4D8),
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: classesState.classes.length,
+                            itemBuilder: (context, index) {
+                              final cls = classesState.classes[index];
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey[300]!),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.all(16),
+                                  leading: CircleAvatar(
+                                    radius: 28,
+                                    backgroundColor: const Color(0xFF00B4D8),
+                                    child: Text(
+                                      cls.className,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    'Class ${cls.fullName}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  subtitle: const Text('Tap to view students'),
+                                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                                  onTap: () => _viewStudents(context, ref, cls),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  void _showStudentsDialog(BuildContext context, List<Student> students) {
+  Future<void> _viewStudents(BuildContext context, WidgetRef ref, AssignedClass cls) async {
+    // Load students for this class
+    await ref.read(classesProvider.notifier).loadClassStudents(cls.classId);
+    
+    if (!context.mounted) return;
+
+    final students = ref.read(classesProvider).classStudents[cls.classId];
+
+    if (students == null || students.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No students found in this class'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -442,7 +558,7 @@ class _HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'All Students (${students.length})',
+                '${cls.fullName} Students',
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -470,7 +586,7 @@ class _HomeScreen extends StatelessWidget {
                           ),
                         ),
                         title: Text(student.name),
-                        subtitle: Text('Roll: ${student.rollNumber} • ${student.fullClassName}'),
+                        subtitle: Text('Roll: ${student.rollNumber}'),
                       ),
                     );
                   },
@@ -482,264 +598,28 @@ class _HomeScreen extends StatelessWidget {
       ),
     );
   }
-
-  void _showComingSoon(BuildContext context, String feature) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(feature),
-        content: const Text('This feature is coming soon!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showSnackbar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-}
-
-// Classes Screen
-class _ClassesScreen extends StatefulWidget {
-  final User? user;
-
-  const _ClassesScreen({required this.user});
-
-  @override
-  State<_ClassesScreen> createState() => _ClassesScreenState();
-}
-
-class _ClassesScreenState extends State<_ClassesScreen> {
-  List<AssignedClass> classes = [];
-  bool isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadClasses();
-  }
-
-  Future<void> _loadClasses() async {
-    setState(() => isLoading = true);
-
-    final result = await ApiService.getStaffAssignedClasses(
-      token: widget.user!.token!,
-      staffId: widget.user!.id,
-    );
-
-    if (result['success']) {
-      final data = result['data'];
-      final assignedClassesData = data['assignedClasses'] as List<dynamic>? ?? [];
-
-      setState(() {
-        classes = assignedClassesData.map((c) => AssignedClass.fromJson(c)).toList();
-        isLoading = false;
-      });
-    } else {
-      setState(() => isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              child: const Text(
-                'My Classes',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-            Expanded(
-              child: isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
-                    )
-                  : classes.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.class_outlined, size: 80, color: Colors.grey[300]),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No Classes Assigned',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: classes.length,
-                          itemBuilder: (context, index) {
-                            final cls = classes[index];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey[300]!),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.all(16),
-                                leading: CircleAvatar(
-                                  radius: 28,
-                                  backgroundColor: const Color(0xFF00B4D8),
-                                  child: Text(
-                                    cls.className,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                ),
-                                title: Text(
-                                  'Class ${cls.fullName}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                subtitle: const Text('Tap to view students'),
-                                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                                onTap: () => _viewStudents(cls),
-                              ),
-                            );
-                          },
-                        ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _viewStudents(AssignedClass cls) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
-      ),
-    );
-
-    final result = await ApiService.getMyClassStudents(
-      token: widget.user!.token!,
-      classId: cls.classId,
-    );
-
-    Navigator.pop(context);
-
-    if (result['success']) {
-      final data = result['data'];
-      final List<dynamic> studentsData = data['students'] ?? [];
-      final students = studentsData.map((s) => Student.fromJson(s)).toList();
-
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (context) => DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (context, scrollController) => Container(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${cls.fullName} Students',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: ListView.builder(
-                    controller: scrollController,
-                    itemCount: students.length,
-                    itemBuilder: (context, index) {
-                      final student = students[index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: const Color(0xFF00B4D8),
-                            child: Text(
-                              student.name[0].toUpperCase(),
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                          title: Text(student.name),
-                          subtitle: Text('Roll: ${student.rollNumber}'),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-  }
 }
 
 // Events Screen
-class _EventsScreen extends StatelessWidget {
-  final User? user;
+class _EventsScreen extends ConsumerWidget {
+  final dynamic user;
 
   const _EventsScreen({required this.user});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return StaffEventsScreen(user: user!);
   }
 }
 
 // Profile Screen
-class _ProfileScreen extends StatelessWidget {
-  final User? user;
+class _ProfileScreen extends ConsumerWidget {
+  final dynamic user;
 
   const _ProfileScreen({required this.user});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -776,9 +656,15 @@ class _ProfileScreen extends StatelessWidget {
                               child: const Text('Cancel'),
                             ),
                             TextButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                Navigator.pushReplacementNamed(context, '/login');
+                              onPressed: () async {
+                                await ref.read(authProvider.notifier).logout();
+                                if (context.mounted) {
+                                  Navigator.pushNamedAndRemoveUntil(
+                                    context,
+                                    '/login',
+                                    (route) => false,
+                                  );
+                                }
                               },
                               child: const Text('Logout'),
                             ),

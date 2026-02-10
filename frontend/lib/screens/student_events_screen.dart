@@ -1,97 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
 import '../models/event_model.dart';
-import '../services/api_service.dart';
+import '../providers/events_provider.dart';
 import 'event_details_screen.dart';
 
-class StudentEventsScreen extends StatefulWidget {
+class StudentEventsScreen extends ConsumerStatefulWidget {
   final User user;
 
   const StudentEventsScreen({Key? key, required this.user}) : super(key: key);
 
   @override
-  State<StudentEventsScreen> createState() => _StudentEventsScreenState();
+  ConsumerState<StudentEventsScreen> createState() => _StudentEventsScreenState();
 }
 
-class _StudentEventsScreenState extends State<StudentEventsScreen> {
-  List<Event> allEvents = [];
-  List<Event> filteredEvents = [];
-  bool isLoading = true;
-  String selectedFilter = 'upcoming';
-
+class _StudentEventsScreenState extends ConsumerState<StudentEventsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadEvents();
-  }
-
-  Future<void> _loadEvents() async {
-    setState(() => isLoading = true);
-
-    try {
-      final result = await ApiService.getStudentEvents(
-        token: widget.user.token!,
-        limit: 100,
-      );
-
-      if (result['success']) {
-        final List<dynamic> eventsData = result['data']['events'] ?? [];
-        setState(() {
-          allEvents = eventsData.map((e) => Event.fromJson(e)).toList();
-          _applyFilters();
-        });
-      } else {
-        _showSnackbar(result['message'] ?? 'Failed to load events', Colors.red);
-      }
-    } catch (e) {
-      _showSnackbar('Error loading events', Colors.red);
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
-
-  void _applyFilters() {
-    List<Event> filtered = List.from(allEvents);
-
-    final now = DateTime.now();
-    if (selectedFilter == 'upcoming') {
-      filtered = filtered.where((event) {
-        try {
-          final eventDate = DateTime.parse(event.eventDate);
-          return eventDate.isAfter(now) || 
-                 (eventDate.year == now.year && 
-                  eventDate.month == now.month && 
-                  eventDate.day == now.day);
-        } catch (e) {
-          return false;
-        }
-      }).toList();
-    }
-
-    filtered.sort((a, b) {
-      try {
-        final dateA = DateTime.parse(a.eventDate);
-        final dateB = DateTime.parse(b.eventDate);
-        return dateA.compareTo(dateB);
-      } catch (e) {
-        return 0;
-      }
+    Future.microtask(() {
+      ref.read(eventsProvider.notifier).loadEvents();
     });
-
-    setState(() {
-      filteredEvents = filtered;
-    });
-  }
-
-  void _showSnackbar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   DateTime? _parseDate(String dateStr) {
@@ -138,13 +68,15 @@ class _StudentEventsScreenState extends State<StudentEventsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final eventsState = ref.watch(eventsProvider);
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Clean Header matching other screens
+            // Header
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -173,7 +105,9 @@ class _StudentEventsScreenState extends State<StudentEventsScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.refresh),
-                        onPressed: _loadEvents,
+                        onPressed: () {
+                          ref.read(eventsProvider.notifier).refresh();
+                        },
                         color: const Color(0xFF00B4D8),
                       ),
                     ],
@@ -192,11 +126,11 @@ class _StudentEventsScreenState extends State<StudentEventsScreen> {
 
             // Events List
             Expanded(
-              child: isLoading
+              child: eventsState.isLoading
                   ? const Center(
                       child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
                     )
-                  : filteredEvents.isEmpty
+                  : eventsState.events.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -227,13 +161,15 @@ class _StudentEventsScreenState extends State<StudentEventsScreen> {
                           ),
                         )
                       : RefreshIndicator(
-                          onRefresh: _loadEvents,
+                          onRefresh: () async {
+                            await ref.read(eventsProvider.notifier).refresh();
+                          },
                           color: const Color(0xFF00B4D8),
                           child: ListView.builder(
                             padding: const EdgeInsets.all(20),
-                            itemCount: filteredEvents.length,
+                            itemCount: eventsState.events.length,
                             itemBuilder: (context, index) {
-                              final event = filteredEvents[index];
+                              final event = eventsState.events[index];
                               return _buildEventCard(event);
                             },
                           ),
@@ -283,7 +219,7 @@ class _StudentEventsScreenState extends State<StudentEventsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with category badge
+            // Header
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -342,7 +278,6 @@ class _StudentEventsScreenState extends State<StudentEventsScreen> {
               ),
             ),
 
-            // Divider
             Divider(height: 1, color: Colors.grey[200]),
 
             // Content
@@ -351,7 +286,6 @@ class _StudentEventsScreenState extends State<StudentEventsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
                   Text(
                     event.title,
                     style: const TextStyle(
@@ -362,7 +296,6 @@ class _StudentEventsScreenState extends State<StudentEventsScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Description
                   Text(
                     event.description,
                     maxLines: 2,
@@ -400,10 +333,10 @@ class _StudentEventsScreenState extends State<StudentEventsScreen> {
                       CircleAvatar(
                         radius: 14,
                         backgroundColor: const Color(0xFF00B4D8).withOpacity(0.1),
-                        child: Icon(
+                        child: const Icon(
                           Icons.person,
                           size: 16,
-                          color: const Color(0xFF00B4D8),
+                          color: Color(0xFF00B4D8),
                         ),
                       ),
                       const SizedBox(width: 8),

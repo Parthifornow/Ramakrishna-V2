@@ -1,81 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
 import '../models/event_model.dart';
-import '../services/api_service.dart';
+import '../providers/events_provider.dart';
 import 'create_event.dart';
 import 'event_details_screen.dart';
 
-class StaffEventsScreen extends StatefulWidget {
+class StaffEventsScreen extends ConsumerStatefulWidget {
   final User user;
 
   const StaffEventsScreen({Key? key, required this.user}) : super(key: key);
 
   @override
-  State<StaffEventsScreen> createState() => _StaffEventsScreenState();
+  ConsumerState<StaffEventsScreen> createState() => _StaffEventsScreenState();
 }
 
-class _StaffEventsScreenState extends State<StaffEventsScreen> {
-  List<Event> events = [];
-  bool isLoading = true;
+class _StaffEventsScreenState extends ConsumerState<StaffEventsScreen> {
   String selectedFilter = 'all';
 
   @override
   void initState() {
     super.initState();
-    _loadEvents();
-  }
-
-  Future<void> _loadEvents() async {
-    setState(() => isLoading = true);
-
-    try {
-      Map<String, dynamic> result;
-
-      if (selectedFilter == 'my_events') {
-        result = await ApiService.getMyEvents(
-          token: widget.user.token!,
-          limit: 50,
-        );
-      } else if (selectedFilter == 'upcoming') {
-        result = await ApiService.getUpcomingEvents(
-          token: widget.user.token!,
-          limit: 50,
-        );
-      } else {
-        result = await ApiService.getStaffEvents(
-          token: widget.user.token!,
-          limit: 50,
-        );
-      }
-
-      if (result['success']) {
-        final List<dynamic> eventsData = result['data']['events'] ?? [];
-        setState(() {
-          events = eventsData.map((e) => Event.fromJson(e)).toList();
-        });
-      } else {
-        _showSnackbar(result['message'] ?? 'Failed to load events', Colors.red);
-      }
-    } catch (e) {
-      _showSnackbar('Error loading events', Colors.red);
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
-
-  Future<void> _deleteEvent(String eventId) async {
-    final result = await ApiService.deleteEvent(
-      token: widget.user.token!,
-      eventId: eventId,
-    );
-
-    if (result['success']) {
-      _showSnackbar('Event deleted successfully', Colors.green);
-      _loadEvents();
-    } else {
-      _showSnackbar(result['message'] ?? 'Failed to delete event', Colors.red);
-    }
+    Future.microtask(() {
+      ref.read(eventsProvider.notifier).loadEvents(filter: selectedFilter);
+    });
   }
 
   void _showSnackbar(String message, Color color) {
@@ -137,12 +86,14 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final eventsState = ref.watch(eventsProvider);
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: Column(
           children: [
-            // Clean Header matching other screens
+            // Header
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -173,7 +124,9 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.refresh),
-                        onPressed: _loadEvents,
+                        onPressed: () {
+                          ref.read(eventsProvider.notifier).refresh(filter: selectedFilter);
+                        },
                         color: const Color(0xFF00B4D8),
                       ),
                     ],
@@ -195,49 +148,51 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
 
             // Events List
             Expanded(
-            child: isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF00B4D8), // Changed from purple to blue
-                    ),
-                  )
-                : events.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.event_busy,
-                              size: 80,
-                              color: Colors.grey[300],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No events found',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadEvents,
-                        color: const Color(0xFF00B4D8), // Changed from purple to blue
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: events.length,
-                          itemBuilder: (context, index) {
-                            final event = events[index];
-                            return _buildEventCard(event);
-                          },
-                        ),
+              child: eventsState.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF00B4D8),
                       ),
-          ),
-        ],
-      ),
+                    )
+                  : eventsState.events.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.event_busy,
+                                size: 80,
+                                color: Colors.grey[300],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No events found',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: () async {
+                            await ref.read(eventsProvider.notifier).refresh(filter: selectedFilter);
+                          },
+                          color: const Color(0xFF00B4D8),
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: eventsState.events.length,
+                            itemBuilder: (context, index) {
+                              final event = eventsState.events[index];
+                              return _buildEventCard(event);
+                            },
+                          ),
+                        ),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
@@ -249,10 +204,10 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
           );
 
           if (result == true) {
-            _loadEvents();
+            ref.read(eventsProvider.notifier).refresh(filter: selectedFilter);
           }
         },
-        backgroundColor: const Color(0xFF00B4D8), // Changed from purple to blue
+        backgroundColor: const Color(0xFF00B4D8),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Create Event', style: TextStyle(color: Colors.white)),
       ),
@@ -265,12 +220,12 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
       child: InkWell(
         onTap: () {
           setState(() => selectedFilter = value);
-          _loadEvents();
+          ref.read(eventsProvider.notifier).loadEvents(filter: value);
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF00B4D8) : Colors.grey[200], // Changed from purple to blue
+            color: isSelected ? const Color(0xFF00B4D8) : Colors.grey[200],
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
@@ -320,7 +275,9 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
               builder: (context) => EventDetailsScreen(
                 event: event,
                 user: widget.user,
-                onEventUpdated: _loadEvents,
+                onEventUpdated: () {
+                  ref.read(eventsProvider.notifier).refresh(filter: selectedFilter);
+                },
               ),
             ),
           );
@@ -500,36 +457,7 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
                     IconButton(
                       icon: const Icon(Icons.delete, size: 20),
                       color: Colors.red,
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            title: const Text('Delete Event'),
-                            content: const Text(
-                              'Are you sure you want to delete this event?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  _deleteEvent(event.id);
-                                },
-                                child: const Text(
-                                  'Delete',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                      onPressed: () => _confirmDelete(event.id),
                     ),
                 ],
               ),
@@ -553,5 +481,41 @@ class _StaffEventsScreenState extends State<StaffEventsScreen> {
       default:
         return 'Unknown';
     }
+  }
+
+  void _confirmDelete(String eventId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('Delete Event'),
+        content: const Text(
+          'Are you sure you want to delete this event?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await ref.read(eventsProvider.notifier).deleteEvent(eventId);
+              if (success) {
+                _showSnackbar('Event deleted successfully', Colors.green);
+              } else {
+                _showSnackbar('Failed to delete event', Colors.red);
+              }
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

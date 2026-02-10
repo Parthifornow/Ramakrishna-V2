@@ -1,32 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../models/user_model.dart';
+import '../providers/auth_provider.dart';
+import '../providers/attendance_provider.dart';
+import '../providers/events_provider.dart';
 import 'student_attendance_screen.dart';
 import 'student_events_screen.dart';
 
-class StudentDashboard extends StatefulWidget {
+class StudentDashboard extends ConsumerStatefulWidget {
   const StudentDashboard({Key? key}) : super(key: key);
 
   @override
-  State<StudentDashboard> createState() => _StudentDashboardState();
+  ConsumerState<StudentDashboard> createState() => _StudentDashboardState();
 }
 
-class _StudentDashboardState extends State<StudentDashboard> {
+class _StudentDashboardState extends ConsumerState<StudentDashboard> {
   int _currentIndex = 0;
-  User? user;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    user = ModalRoute.of(context)?.settings.arguments as User?;
+  void initState() {
+    super.initState();
+    // Load initial data
+    Future.microtask(() {
+      final user = ref.read(authProvider).user;
+      if (user != null) {
+        ref.read(attendanceProvider.notifier).loadStudentAttendance(
+          studentId: user.id,
+        );
+        ref.read(eventsProvider.notifier).loadEvents();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authProvider).user;
+
     final List<Widget> screens = [
       _HomeScreen(user: user),
-      _AttendanceScreen(user: user),
-      _EventsScreen(user: user),
+      const _AttendanceScreen(),
+      const _EventsScreen(),
       _ProfileScreen(user: user),
     ];
 
@@ -114,8 +127,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
 }
 
 // Home Screen
-class _HomeScreen extends StatelessWidget {
-  final User? user;
+class _HomeScreen extends ConsumerWidget {
+  final dynamic user;
 
   const _HomeScreen({required this.user});
 
@@ -127,7 +140,7 @@ class _HomeScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -164,14 +177,6 @@ class _HomeScreen extends StatelessWidget {
                       Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.bookmark_border),
-                            onPressed: () {},
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.star_border),
-                            onPressed: () {},
-                          ),
-                          IconButton(
                             icon: const Icon(Icons.notifications_none),
                             onPressed: () {},
                           ),
@@ -183,7 +188,7 @@ class _HomeScreen extends StatelessWidget {
               ),
             ),
 
-            // Attendance Card
+            // Attendance Summary Card
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               padding: const EdgeInsets.all(20),
@@ -221,47 +226,33 @@ class _HomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 20),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'First Punch',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          '-',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Last Punch',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          '-',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                    child: Consumer(
+                      builder: (context, ref, child) {
+                        final attendanceState = ref.watch(attendanceProvider);
+                        final percentage = attendanceState.data?.overallStatistics.attendancePercentage ?? 0.0;
+                        
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Overall Attendance',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${percentage.toStringAsFixed(1)}%',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF00B4D8),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -277,12 +268,12 @@ class _HomeScreen extends StatelessWidget {
                 children: [
                   _buildQuickLink(
                     context,
+                    ref,
                     'View Attendance',
                     'Check your attendance records',
                     Icons.calendar_today_outlined,
                     const Color(0xFF00B4D8),
                     () {
-                      // Just switch to attendance tab instead of navigation
                       final dashboard = context.findAncestorStateOfType<_StudentDashboardState>();
                       dashboard?.setState(() {
                         dashboard._currentIndex = 1;
@@ -292,35 +283,17 @@ class _HomeScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _buildQuickLink(
                     context,
+                    ref,
                     'Events',
                     'View upcoming school events',
                     Icons.event_outlined,
                     const Color(0xFF00B4D8),
                     () {
-                      // Just switch to events tab instead of navigation
                       final dashboard = context.findAncestorStateOfType<_StudentDashboardState>();
                       dashboard?.setState(() {
                         dashboard._currentIndex = 2;
                       });
                     },
-                  ),
-                  const SizedBox(height: 12),
-                  _buildQuickLink(
-                    context,
-                    'Exam Schedules',
-                    'View your exam timetable',
-                    Icons.assignment_outlined,
-                    const Color(0xFF00B4D8),
-                    () => _showComingSoon(context, 'Exam Schedules'),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildQuickLink(
-                    context,
-                    'Results',
-                    'Check your test results',
-                    Icons.assessment_outlined,
-                    const Color(0xFF00B4D8),
-                    () => _showComingSoon(context, 'Results'),
                   ),
                 ],
               ),
@@ -333,6 +306,7 @@ class _HomeScreen extends StatelessWidget {
 
   Widget _buildQuickLink(
     BuildContext context,
+    WidgetRef ref,
     String title,
     String subtitle,
     IconData icon,
@@ -388,64 +362,44 @@ class _HomeScreen extends StatelessWidget {
       ),
     );
   }
-
-  void _showComingSoon(BuildContext context, String feature) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(feature),
-        content: const Text('This feature is coming soon!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // Attendance Screen
-class _AttendanceScreen extends StatelessWidget {
-  final User? user;
-
-  const _AttendanceScreen({required this.user});
+class _AttendanceScreen extends ConsumerWidget {
+  const _AttendanceScreen();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider).user;
     return StudentAttendanceScreen(user: user!);
   }
 }
 
 // Events Screen
-class _EventsScreen extends StatelessWidget {
-  final User? user;
-
-  const _EventsScreen({required this.user});
+class _EventsScreen extends ConsumerWidget {
+  const _EventsScreen();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider).user;
     return StudentEventsScreen(user: user!);
   }
 }
 
 // Profile Screen
-class _ProfileScreen extends StatelessWidget {
-  final User? user;
+class _ProfileScreen extends ConsumerWidget {
+  final dynamic user;
 
   const _ProfileScreen({required this.user});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Header
             Container(
               padding: const EdgeInsets.all(20),
               child: Row(
@@ -476,9 +430,15 @@ class _ProfileScreen extends StatelessWidget {
                               child: const Text('Cancel'),
                             ),
                             TextButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                Navigator.pushReplacementNamed(context, '/login');
+                              onPressed: () async {
+                                await ref.read(authProvider.notifier).logout();
+                                if (context.mounted) {
+                                  Navigator.pushNamedAndRemoveUntil(
+                                    context,
+                                    '/login',
+                                    (route) => false,
+                                  );
+                                }
                               },
                               child: const Text('Logout'),
                             ),
@@ -490,8 +450,6 @@ class _ProfileScreen extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Profile Card
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               padding: const EdgeInsets.all(24),
@@ -535,7 +493,6 @@ class _ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Profile Details
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),

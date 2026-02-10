@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/api_service.dart';
-import '../models/user_model.dart';
-import 'register_screen.dart';
-import 'forgot_password_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   
-  bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
@@ -30,51 +27,26 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-
-    final result = await ApiService.login(
-      phoneNumber: _phoneController.text.trim(),
-      password: _passwordController.text,
+    final success = await ref.read(authProvider.notifier).login(
+      _phoneController.text.trim(),
+      _passwordController.text,
     );
-
-    setState(() => _isLoading = false);
 
     if (!mounted) return;
 
-    if (result['success']) {
-      // FIXED: Parse user and add token
-      final userData = result['data']['user'];
-      final token = result['data']['token'];
+    if (success) {
+      final user = ref.read(authProvider).user;
       
-      print('🔑 Login response:');
-      print('   User data: $userData');
-      print('   Token: $token');
-      
-      // Create user object with token
-      final user = User.fromJson(userData).copyWith(token: token);
-      
-      print('✅ Created User object:');
-      print('   ID: ${user.id}');
-      print('   Name: ${user.name}');
-      print('   Token: ${user.token}');
-      print('   User Type: ${user.userType}');
-      
-      // Navigate based on user type
-      if (user.isStaff) {
-        Navigator.pushReplacementNamed(
-          context,
-          '/staff-dashboard',
-          arguments: user,
-        );
-      } else {
-        Navigator.pushReplacementNamed(
-          context,
-          '/student-dashboard',
-          arguments: user,
-        );
+      if (user != null) {
+        if (user.isStaff) {
+          Navigator.pushReplacementNamed(context, '/staff-dashboard');
+        } else {
+          Navigator.pushReplacementNamed(context, '/student-dashboard');
+        }
       }
     } else {
-      _showErrorDialog(result['message'] ?? 'Login failed');
+      final error = ref.read(authProvider).error;
+      _showErrorDialog(error ?? 'Login failed');
     }
   }
 
@@ -96,6 +68,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -151,14 +125,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.blue, width: 2),
-                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -191,14 +157,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.blue, width: 2),
-                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -210,28 +168,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 12),
-                  
-                  // Forgot Password
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ForgotPasswordScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text('Forgot Password?'),
-                    ),
-                  ),
                   const SizedBox(height: 24),
                   
                   // Login Button
                   ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
+                    onPressed: authState.isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -240,7 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
                     ),
-                    child: _isLoading
+                    child: authState.isLoading
                         ? const SizedBox(
                             height: 20,
                             width: 20,
@@ -256,29 +197,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Register Link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text("Don't have an account? "),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const RegisterScreen(),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          'Register',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
