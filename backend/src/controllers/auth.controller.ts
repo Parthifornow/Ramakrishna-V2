@@ -3,8 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../config/firebase';
 import { User, UserResponse } from '../models/user.models';
+import { recordLoginAttempt } from '../middleware/rate-limit.middleware';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'secret-key-will-be-updated';
 const USERS_COLLECTION = 'users';
 const PENDING_USERS_COLLECTION = 'pending_users';
 
@@ -265,8 +266,10 @@ export class AuthController {
       return res.status(201).json({
         success: true,
         message: 'Registration completed successfully',
-        user: userResponse,
-        token,
+        data: {
+          user: userResponse,
+          token,
+        },
       });
     } catch (error: any) {
       console.error('❌ Complete registration error:', error);
@@ -309,6 +312,7 @@ export class AuthController {
         .get();
 
       if (userSnapshot.empty) {
+        recordLoginAttempt(phoneNumber, false);
         return res.status(401).json({
           success: false,
           message: 'Invalid phone number or password',
@@ -331,11 +335,15 @@ export class AuthController {
       const isPasswordValid = await bcrypt.compare(password, userData.password);
 
       if (!isPasswordValid) {
+        recordLoginAttempt(phoneNumber, false);
         return res.status(401).json({
           success: false,
           message: 'Invalid phone number or password',
         });
       }
+
+      // Record successful login
+      recordLoginAttempt(phoneNumber, true);
 
       // Generate JWT token
       const token = jwt.sign(
@@ -370,8 +378,10 @@ export class AuthController {
       return res.status(200).json({
         success: true,
         message: 'Login successful',
-        user: userResponse,
-        token,
+        data: {
+          user: userResponse,
+          token,
+        },
       });
     } catch (error: any) {
       console.error('❌ Login error:', error);

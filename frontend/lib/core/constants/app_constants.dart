@@ -1,18 +1,18 @@
 class AppConstants {
-  // API Configuration
-  static const String baseUrl = 'http://10.242.56.124:3000/api';
 
+  static const String baseUrl = 'http://192.168.1.5:3000/api'; 
+  
   // Cache Keys
   static const String cacheKeyUser = 'cached_user';
   static const String cacheKeyToken = 'auth_token';
   static const String cacheKeyAttendance = 'cached_attendance';
   static const String cacheKeyEvents = 'cached_events';
   static const String cacheKeyClasses = 'cached_classes';
-
+  
   // Cache Duration
   static const Duration cacheDuration = Duration(hours: 1);
   static const Duration sessionDuration = Duration(days: 7);
-
+  
   // Hive Boxes
   static const String userBox = 'user_box';
   static const String attendanceBox = 'attendance_box';
