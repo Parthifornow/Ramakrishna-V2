@@ -46,33 +46,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } else {
       final error = ref.read(authProvider).error;
-      _showErrorDialog(error ?? 'Login failed');
-    }
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.error_outline, color: Colors.red),
-            SizedBox(width: 12),
-            Text('Login Failed'),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error ?? 'Login failed'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        ],
-      ),
-    );
+        ),
+      );
+    }
   }
 
   @override
@@ -80,6 +64,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -87,36 +72,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 60),
-                  
-                  // Logo/Icon
-                  const Icon(
-                    Icons.school,
-                    size: 80,
-                    color: Colors.blue,
-                  ),
                   const SizedBox(height: 20),
+                  const SizedBox(height: 40),
                   
                   // Title
                   const Text(
-                    'Welcome Back',
-                    textAlign: TextAlign.center,
+                    'Log in',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 36,
                       fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      letterSpacing: -0.5,
                     ),
                   ),
+                  
                   const SizedBox(height: 8),
-                  const Text(
-                    'Sign in to continue',
-                    textAlign: TextAlign.center,
+                  
+                  Text(
+                    'By logging in, you agree to our Terms of Use.',
                     style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
+                      fontSize: 14,
+                      color: Colors.grey[600],
                     ),
                   ),
+                  
                   const SizedBox(height: 48),
                   
                   // Phone Number Field
@@ -127,12 +108,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       FilteringTextInputFormatter.digitsOnly,
                       LengthLimitingTextInputFormatter(10),
                     ],
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                     decoration: InputDecoration(
                       labelText: 'Phone Number',
-                      hintText: 'Enter your phone number',
-                      prefixIcon: const Icon(Icons.phone),
+                      labelStyle: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                      hintText: 'Your phone number',
+                      hintStyle: TextStyle(
+                        color: Colors.grey[400],
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF00B4D8),
+                          width: 2,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Colors.red),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 18,
                       ),
                     ),
                     validator: (value) {
@@ -145,26 +162,66 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       return null;
                     },
                   ),
+                  
                   const SizedBox(height: 20),
                   
                   // Password Field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                     decoration: InputDecoration(
                       labelText: 'Password',
+                      labelStyle: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
                       hintText: 'Enter your password',
-                      prefixIcon: const Icon(Icons.lock),
+                      hintStyle: TextStyle(
+                        color: Colors.grey[400],
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                          _obscurePassword 
+                            ? Icons.visibility_off_outlined 
+                            : Icons.visibility_outlined,
+                          color: Colors.grey[600],
                         ),
                         onPressed: () {
                           setState(() => _obscurePassword = !_obscurePassword);
                         },
                       ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF00B4D8),
+                          width: 2,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Colors.red),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 18,
                       ),
                     ),
                     validator: (value) {
@@ -178,65 +235,66 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     },
                   ),
                   
-                  // Forgot Password Link
+                  const SizedBox(height: 12),
+                  
+                  // Forgot Password
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
                         Navigator.pushNamed(context, '/forgot-password');
                       },
-                      child: const Text('Forgot Password?'),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // Login Button
-                  ElevatedButton(
-                    onPressed: authState.isLoading ? null : _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: authState.isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Text(
-                            'LOGIN',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Register Link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text("Don't have an account? "),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/register');
-                        },
-                        child: const Text(
-                          'Register',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                      child: const Text(
+                        'Forgot Password?',
+                        style: TextStyle(
+                          color: Color(0xFF00B4D8),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Login Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: authState.isLoading ? null : _handleLogin,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00B4D8),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        disabledBackgroundColor: const Color(0xFF00B4D8).withOpacity(0.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: authState.isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text(
+                              'Connect',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                    ),
                   ),
                 ],
               ),

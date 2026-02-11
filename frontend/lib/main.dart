@@ -11,6 +11,7 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/student_dashboard.dart';
+import 'screens/get_started.dart';
 import 'screens/staff_dashboard.dart';
 
 void main() async {
@@ -96,6 +97,7 @@ class MyApp extends ConsumerWidget {
       ),
       home: const SplashScreen(),
       routes: {
+        '/get-started': (context) => const GetStartedScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
