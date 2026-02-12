@@ -48,15 +48,40 @@ app.use(helmet({
 }));
 
 // CORS configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:8080',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:8080',
+];
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow requests with no origin (mobile apps, Postman, local HTML files, etc.)
+    if (!origin) {
+      console.log('✅ CORS: Allowing request with no origin (local file or tool)');
+      return callback(null, true);
     }
+    
+    // In development, allow any localhost/127.0.0.1 origin
+    if (NODE_ENV === 'development' && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      console.log(`✅ CORS: Allowing development origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    // Check against allowed origins list
+    if (allowedOrigins.includes(origin)) {
+      console.log(`✅ CORS: Allowing whitelisted origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    // Reject all other origins
+    console.log(`❌ CORS: Rejecting origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
@@ -169,6 +194,11 @@ const server = app.listen(PORT, () => {
   console.log(`   🏫 Class:      /api/class`);
   console.log(`   📋 Attendance: /api/attendance`);
   console.log(`   📅 Events:     /api/events`);
+  console.log('=================================');
+  console.log('🔧 CORS Configuration:');
+  console.log(`   Environment: ${NODE_ENV}`);
+  console.log(`   Allowed Origins: ${allowedOrigins.join(', ')}`);
+  console.log(`   Development Mode: ${NODE_ENV === 'development' ? 'All localhost origins allowed' : 'Strict origin checking'}`);
   console.log('=================================');
 });
 
