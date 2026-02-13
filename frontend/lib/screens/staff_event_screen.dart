@@ -6,6 +6,7 @@ import '../models/event_model.dart';
 import '../providers/events_provider.dart';
 import 'create_event.dart';
 import 'event_details_screen.dart';
+import '../widgets/sticky_header_widget.dart';
 
 class StaffEventsScreen extends ConsumerStatefulWidget {
   final User user;
@@ -40,7 +41,7 @@ class _StaffEventsScreenState extends ConsumerState<StaffEventsScreen> {
   Color _getCategoryColor(String category) {
     switch (category) {
       case 'academic':
-        return const Color(0xFF1E88E5);
+        return const Color(0xFF00B4D8);
       case 'sports':
         return const Color(0xFF43A047);
       case 'cultural':
@@ -93,55 +94,29 @@ class _StaffEventsScreenState extends ConsumerState<StaffEventsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
+            // Sticky Header
+            StickyHeader(
+              greeting: 'Events',
+              name: widget.user.name,
+              subtitle: 'Manage school events',
+            ),
+
+            // Filter Chips
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey[200]!),
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Events Management',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.refresh),
-                        onPressed: () {
-                          ref.read(eventsProvider.notifier).refresh(filter: selectedFilter);
-                        },
-                        color: const Color(0xFF00B4D8),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Filter Chips
-                  Row(
-                    children: [
-                      _buildFilterChip('All Events', 'all'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('My Events', 'my_events'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Upcoming', 'upcoming'),
-                    ],
-                  ),
+                  _buildFilterChip('All Events', 'all'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('My Events', 'my_events'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Upcoming', 'upcoming'),
                 ],
               ),
             ),
@@ -397,7 +372,6 @@ class _StaffEventsScreenState extends ConsumerState<StaffEventsScreen> {
                   ],
                 ],
               ),
-
               if (event.location != null) ...[
                 const SizedBox(height: 8),
                 Row(
@@ -418,7 +392,6 @@ class _StaffEventsScreenState extends ConsumerState<StaffEventsScreen> {
                   ],
                 ),
               ],
-
               const SizedBox(height: 12),
 
               // Footer

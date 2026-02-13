@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
 import '../models/class_model.dart';
-import '../models/attendance_model.dart';
 import '../services/api_service.dart';
-import '../providers/classes_provider.dart';
 
 class MarkAttendanceScreen extends ConsumerStatefulWidget {
   final User user;
@@ -36,7 +34,10 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
   void initState() {
     super.initState();
     _initializeSubjects();
-    _loadStudents();
+    // Use addPostFrameCallback to load data after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadStudents();
+    });
   }
 
   void _initializeSubjects() {
@@ -50,33 +51,59 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
   }
 
   Future<void> _loadStudents() async {
+    if (!mounted) return;
+    
     setState(() => isLoading = true);
 
     try {
-      // Load from cache or network using Riverpod
-      await ref.read(classesProvider.notifier).loadClassStudents(
-        widget.assignedClass.classId,
+      print('🔍 Loading students for class: ${widget.assignedClass.classId}');
+      
+      // Load directly from API instead of through provider
+      final result = await ApiService.getMyClassStudents(
+        token: widget.user.token!,
+        classId: widget.assignedClass.classId,
       );
 
-      final loadedStudents = ref.read(classesProvider).classStudents[widget.assignedClass.classId];
+      if (!mounted) return;
 
-      if (loadedStudents != null) {
-        setState(() {
-          students = loadedStudents;
-          
-          for (var student in students) {
-            attendanceStatus[student.id] = 'absent';
+      if (result['success'] && result['data'] != null) {
+        final data = result['data'];
+        final List<dynamic> studentsData = data['students'] ?? [];
+        final loadedStudents = studentsData.map((s) => Student.fromJson(s)).toList();
+
+        print('📚 Loaded students count: ${loadedStudents.length}');
+
+        if (loadedStudents.isNotEmpty) {
+          setState(() {
+            students = loadedStudents;
+            
+            // Initialize attendance status for all students
+            for (var student in students) {
+              attendanceStatus[student.id] = 'absent';
+            }
+          });
+
+          // Load existing attendance if subject is selected
+          if (selectedSubject != null) {
+            await _loadExistingAttendance();
           }
-        });
-
-        if (selectedSubject != null) {
-          await _loadExistingAttendance();
+        } else {
+          print('⚠️ No students found for class ${widget.assignedClass.classId}');
+          _showSnackbar('No students found in this class', Colors.orange);
         }
+      } else {
+        print('❌ Failed to load students: ${result['message']}');
+        _showSnackbar('Failed to load students: ${result['message'] ?? 'Unknown error'}', Colors.red);
       }
     } catch (e) {
-      _showSnackbar('Failed to load students', Colors.red);
+      print('❌ Error loading students: $e');
+      if (mounted) {
+        _showSnackbar('Failed to load students: $e', Colors.red);
+      }
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -96,16 +123,19 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
         final data = result['data'];
         final List<dynamic> attendanceList = data['attendance'] ?? [];
         
-        setState(() {
-          for (var record in attendanceList) {
-            attendanceStatus[record['studentId']] = record['status'];
-          }
-        });
+        if (attendanceList.isNotEmpty && mounted) {
+          setState(() {
+            for (var record in attendanceList) {
+              attendanceStatus[record['studentId']] = record['status'];
+            }
+          });
 
-        _showSnackbar('Loaded existing attendance', const Color(0xFF1E88E5));
+          _showSnackbar('Loaded existing attendance', const Color(0xFF00B4D8));
+        }
       }
     } catch (e) {
       // Silent fail for existing attendance
+      print('ℹ️ No existing attendance found or error: $e');
     }
   }
 
@@ -119,7 +149,7 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF6750A4),
+              primary: Color(0xFF00B4D8),
             ),
           ),
           child: child!,
@@ -165,6 +195,11 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
       return;
     }
 
+    if (students.isEmpty) {
+      _showSnackbar('No students to mark attendance for', Colors.red);
+      return;
+    }
+
     setState(() => isSaving = true);
 
     try {
@@ -178,6 +213,8 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
           'status': attendanceStatus[student.id] ?? 'absent',
         };
       }).toList();
+
+      print('📝 Saving attendance for ${students.length} students');
 
       final result = await ApiService.markAttendance(
         token: widget.user.token!,
@@ -197,18 +234,24 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
         _showSnackbar(result['message'] ?? 'Failed to mark attendance', Colors.red);
       }
     } catch (e) {
-      _showSnackbar('Error saving attendance', Colors.red);
+      print('❌ Error saving attendance: $e');
+      _showSnackbar('Error saving attendance: $e', Colors.red);
     } finally {
-      setState(() => isSaving = false);
+      if (mounted) {
+        setState(() => isSaving = false);
+      }
     }
   }
 
   void _showSnackbar(String message, Color color) {
+    if (!mounted) return;
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -222,33 +265,27 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text('Mark Attendance • ${widget.assignedClass.fullName}'),
-        backgroundColor: const Color(0xFF6750A4),
+        backgroundColor: const Color(0xFF00B4D8),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF6750A4)),
+              child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
             )
           : Column(
               children: [
                 // Date, Subject, Period Selection Card
                 Container(
-                  margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
                   ),
                   child: Column(
                     children: [
@@ -257,12 +294,12 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                         onTap: _selectDate,
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF6750A4).withOpacity(0.1),
+                            color: const Color(0xFF00B4D8).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFF6750A4).withOpacity(0.3),
+                              color: const Color(0xFF00B4D8).withOpacity(0.3),
                             ),
                           ),
                           child: Row(
@@ -270,51 +307,51 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.calendar_today, color: Color(0xFF6750A4)),
+                                  const Icon(Icons.calendar_today, color: Color(0xFF00B4D8), size: 20),
                                   const SizedBox(width: 12),
                                   Text(
                                     DateFormat('EEEE, MMM d, yyyy').format(selectedDate),
                                     style: const TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
                               ),
-                              const Icon(Icons.arrow_drop_down),
+                              const Icon(Icons.arrow_drop_down, color: Color(0xFF00B4D8)),
                             ],
                           ),
                         ),
                       ),
                       
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
                       // Subject and Period Row
                       Row(
                         children: [
                           Expanded(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF1E88E5).withOpacity(0.1),
+                                color: const Color(0xFF00B4D8).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: const Color(0xFF1E88E5).withOpacity(0.3),
+                                  color: const Color(0xFF00B4D8).withOpacity(0.3),
                                 ),
                               ),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   value: selectedSubject,
                                   isExpanded: true,
-                                  icon: const Icon(Icons.arrow_drop_down),
+                                  icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF00B4D8)),
                                   items: subjects.map((subject) {
                                     return DropdownMenuItem(
                                       value: subject,
                                       child: Row(
                                         children: [
-                                          const Icon(Icons.book, size: 20, color: Color(0xFF1E88E5)),
+                                          const Icon(Icons.book, size: 18, color: Color(0xFF00B4D8)),
                                           const SizedBox(width: 8),
-                                          Text(subject),
+                                          Text(subject, style: const TextStyle(fontSize: 14)),
                                         ],
                                       ),
                                     );
@@ -332,27 +369,27 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFB8C00).withOpacity(0.1),
+                                color: const Color(0xFF0096C7).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: const Color(0xFFFB8C00).withOpacity(0.3),
+                                  color: const Color(0xFF0096C7).withOpacity(0.3),
                                 ),
                               ),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String?>(
                                   value: selectedPeriod,
                                   isExpanded: true,
-                                  icon: const Icon(Icons.arrow_drop_down),
+                                  icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF0096C7)),
                                   items: [
                                     const DropdownMenuItem(
                                       value: null,
                                       child: Row(
                                         children: [
-                                          Icon(Icons.schedule, size: 20, color: Color(0xFFFB8C00)),
+                                          Icon(Icons.schedule, size: 18, color: Color(0xFF0096C7)),
                                           SizedBox(width: 8),
-                                          Text('Any'),
+                                          Text('Any', style: TextStyle(fontSize: 14)),
                                         ],
                                       ),
                                     ),
@@ -361,9 +398,9 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                                         value: period,
                                         child: Row(
                                           children: [
-                                            const Icon(Icons.schedule, size: 20, color: Color(0xFFFB8C00)),
+                                            const Icon(Icons.schedule, size: 18, color: Color(0xFF0096C7)),
                                             const SizedBox(width: 8),
-                                            Text('Period $period'),
+                                            Text('Period $period', style: const TextStyle(fontSize: 14)),
                                           ],
                                         ),
                                       );
@@ -382,7 +419,7 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                         ],
                       ),
                       
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       
                       // Statistics
                       Row(
@@ -391,7 +428,7 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                             child: _buildStatCard(
                               'Total',
                               students.length.toString(),
-                              const Color(0xFF1E88E5),
+                              const Color(0xFF00B4D8),
                               Icons.people,
                             ),
                           ),
@@ -421,13 +458,13 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
 
                 // Quick Actions
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: _markAllPresent,
-                          icon: const Icon(Icons.check_circle, size: 20),
+                          onPressed: students.isEmpty ? null : _markAllPresent,
+                          icon: const Icon(Icons.check_circle, size: 18),
                           label: const Text('All Present'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
@@ -436,14 +473,15 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
+                            elevation: 0,
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: _markAllAbsent,
-                          icon: const Icon(Icons.cancel, size: 20),
+                          onPressed: students.isEmpty ? null : _markAllAbsent,
+                          icon: const Icon(Icons.cancel, size: 18),
                           label: const Text('All Absent'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
@@ -452,6 +490,7 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
+                            elevation: 0,
                           ),
                         ),
                       ),
@@ -459,14 +498,59 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
                 // Students List
                 Expanded(
                   child: students.isEmpty
-                      ? const Center(child: Text('No students found'))
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.people_outline,
+                                size: 80,
+                                color: Colors.grey[300],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No students found',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Class ${widget.assignedClass.fullName}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              ElevatedButton.icon(
+                                onPressed: _loadStudents,
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Retry'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF00B4D8),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
                       : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
                           itemCount: students.length,
                           itemBuilder: (context, index) {
                             final student = students[index];
@@ -478,25 +562,27 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.03),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                                border: Border.all(
+                                  color: isPresent 
+                                      ? Colors.green.withOpacity(0.2)
+                                      : Colors.red.withOpacity(0.2),
+                                  width: 1.5,
+                                ),
                               ),
                               child: ListTile(
-                                contentPadding: const EdgeInsets.all(12),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 leading: CircleAvatar(
-                                  backgroundColor: isPresent ? Colors.green : Colors.red,
+                                  backgroundColor: isPresent 
+                                      ? Colors.green.withOpacity(0.1)
+                                      : Colors.red.withOpacity(0.1),
                                   child: Text(
                                     student.rollNumber.isNotEmpty
                                         ? student.rollNumber
                                         : (index + 1).toString(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: isPresent ? Colors.green : Colors.red,
                                       fontWeight: FontWeight.bold,
+                                      fontSize: 14,
                                     ),
                                   ),
                                 ),
@@ -504,26 +590,42 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                                   student.name,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
+                                    fontSize: 15,
                                   ),
                                 ),
-                                subtitle: Text('Roll No: ${student.rollNumber}'),
+                                subtitle: Text(
+                                  'Roll No: ${student.rollNumber.isNotEmpty ? student.rollNumber : "N/A"}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    IconButton(
-                                      onPressed: () => _toggleAttendance(student.id, 'present'),
-                                      icon: Icon(
-                                        isPresent ? Icons.check_circle : Icons.check_circle_outline,
-                                        color: Colors.green,
-                                        size: 32,
+                                    InkWell(
+                                      onTap: () => _toggleAttendance(student.id, 'present'),
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        child: Icon(
+                                          isPresent ? Icons.check_circle : Icons.check_circle_outline,
+                                          color: Colors.green,
+                                          size: 28,
+                                        ),
                                       ),
                                     ),
-                                    IconButton(
-                                      onPressed: () => _toggleAttendance(student.id, 'absent'),
-                                      icon: Icon(
-                                        !isPresent ? Icons.cancel : Icons.cancel_outlined,
-                                        color: Colors.red,
-                                        size: 32,
+                                    const SizedBox(width: 4),
+                                    InkWell(
+                                      onTap: () => _toggleAttendance(student.id, 'absent'),
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        child: Icon(
+                                          !isPresent ? Icons.cancel : Icons.cancel_outlined,
+                                          color: Colors.red,
+                                          size: 28,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -536,12 +638,12 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
 
                 // Save Button
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withOpacity(0.05),
                         blurRadius: 10,
                         offset: const Offset(0, -2),
                       ),
@@ -552,10 +654,11 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: isSaving ? null : _saveAttendance,
+                        onPressed: (isSaving || students.isEmpty) ? null : _saveAttendance,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6750A4),
+                          backgroundColor: const Color(0xFF00B4D8),
                           foregroundColor: Colors.white,
+                          disabledBackgroundColor: Colors.grey[300],
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -574,7 +677,7 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                                 'SAVE ATTENDANCE',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                       ),
@@ -588,7 +691,7 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
 
   Widget _buildStatCard(String label, String value, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
@@ -597,7 +700,7 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
       child: Column(
         children: [
           Icon(icon, color: color, size: 20),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             value,
             style: TextStyle(
@@ -606,11 +709,13 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
               color: color,
             ),
           ),
+          const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
               fontSize: 11,
               color: color.withOpacity(0.8),
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

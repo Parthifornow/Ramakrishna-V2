@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
 import '../providers/attendance_provider.dart';
+import '../widgets/sticky_header_widget.dart';
 
 class StudentAttendanceScreen extends ConsumerStatefulWidget {
   final User user;
@@ -57,40 +58,11 @@ class _StudentAttendanceScreenState extends ConsumerState<StudentAttendanceScree
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Attendance',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Academic Year 2025-2026',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
+            // Sticky Header
+            StickyHeader(
+              greeting: 'Attendance',
+              name: widget.user.name,
+              subtitle: 'Academic Year 2025-2026',
             ),
 
             // Content

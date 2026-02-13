@@ -60,20 +60,22 @@ class _GetStartedScreenState extends State<GetStartedScreen>
             children: [
               const Spacer(flex: 2),
               
-              // Logo
+              // Logo with circular background
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: Container(
-                  width: 140,
-                  height: 140,
+                  width: 200,
+                  height: 200,
+                  padding: const EdgeInsets.all(30), // Padding around logo
                   decoration: BoxDecoration(
                     color: const Color(0xFF00B4D8).withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.school_rounded,
-                    size: 80,
-                    color: Color(0xFF00B4D8),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
@@ -88,7 +90,7 @@ class _GetStartedScreenState extends State<GetStartedScreen>
                   child: Column(
                     children: [
                       const Text(
-                        'School Management',
+                        'Ramakrishna School',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 32,
@@ -99,7 +101,7 @@ class _GetStartedScreenState extends State<GetStartedScreen>
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'System',
+                        'Nellore',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 32,

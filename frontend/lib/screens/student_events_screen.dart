@@ -5,6 +5,7 @@ import '../models/user_model.dart';
 import '../models/event_model.dart';
 import '../providers/events_provider.dart';
 import 'event_details_screen.dart';
+import '../widgets/sticky_header_widget.dart';
 
 class StudentEventsScreen extends ConsumerStatefulWidget {
   final User user;
@@ -76,52 +77,11 @@ class _StudentEventsScreenState extends ConsumerState<StudentEventsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Events',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.refresh),
-                        onPressed: () {
-                          ref.read(eventsProvider.notifier).refresh();
-                        },
-                        color: const Color(0xFF00B4D8),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    DateFormat('MMMM d, yyyy').format(DateTime.now()),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
+            // Sticky Header
+            StickyHeader(
+              greeting: 'Events',
+              name: widget.user.name,
+              subtitle: DateFormat('MMMM d, yyyy').format(DateTime.now()),
             ),
 
             // Events List

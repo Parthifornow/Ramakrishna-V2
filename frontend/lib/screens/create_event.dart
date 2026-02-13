@@ -98,7 +98,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF6750A4),
+              primary: Color(0xFF00B4D8),
             ),
           ),
           child: child!,
@@ -119,7 +119,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF6750A4),
+              primary: Color(0xFF00B4D8),
             ),
           ),
           child: child!,
@@ -192,10 +192,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('Create Event'),
-        backgroundColor: const Color(0xFF6750A4),
+        backgroundColor: const Color(0xFF00B4D8),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -210,9 +210,17 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               decoration: InputDecoration(
                 labelText: 'Event Title *',
                 hintText: 'Enter event title',
-                prefixIcon: const Icon(Icons.title),
+                prefixIcon: const Icon(Icons.title, color: Color(0xFF00B4D8)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 2),
                 ),
                 filled: true,
                 fillColor: Colors.white,
@@ -233,9 +241,17 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               decoration: InputDecoration(
                 labelText: 'Description *',
                 hintText: 'Enter event description',
-                prefixIcon: const Icon(Icons.description),
+                prefixIcon: const Icon(Icons.description, color: Color(0xFF00B4D8)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 2),
                 ),
                 filled: true,
                 fillColor: Colors.white,
@@ -272,12 +288,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFF6750A4)
+                          ? const Color(0xFF00B4D8)
                           : Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isSelected
-                            ? const Color(0xFF6750A4)
+                            ? const Color(0xFF00B4D8)
                             : Colors.grey[300]!,
                       ),
                     ),
@@ -320,7 +336,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.calendar_today, color: Color(0xFF6750A4)),
+                          const Icon(Icons.calendar_today, color: Color(0xFF00B4D8)),
                           const SizedBox(width: 12),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,7 +376,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.access_time, color: Color(0xFF6750A4)),
+                          const Icon(Icons.access_time, color: Color(0xFF00B4D8)),
                           const SizedBox(width: 12),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,9 +415,17 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               decoration: InputDecoration(
                 labelText: 'Location (Optional)',
                 hintText: 'Enter event location',
-                prefixIcon: const Icon(Icons.location_on),
+                prefixIcon: const Icon(Icons.location_on, color: Color(0xFF00B4D8)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 2),
                 ),
                 filled: true,
                 fillColor: Colors.white,
@@ -476,12 +500,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFF6750A4)
+                          ? const Color(0xFF00B4D8)
                           : Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isSelected
-                            ? const Color(0xFF6750A4)
+                            ? const Color(0xFF00B4D8)
                             : Colors.grey[300]!,
                       ),
                     ),
@@ -520,7 +544,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               ),
               const SizedBox(height: 8),
               if (isLoadingClasses)
-                const Center(child: CircularProgressIndicator())
+                const Center(child: CircularProgressIndicator(color: Color(0xFF00B4D8)))
               else if (availableClasses.isEmpty)
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -557,12 +581,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFF6750A4)
+                              ? const Color(0xFF00B4D8)
                               : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isSelected
-                                ? const Color(0xFF6750A4)
+                                ? const Color(0xFF00B4D8)
                                 : Colors.grey[300]!,
                           ),
                         ),
@@ -587,7 +611,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : _createEvent,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6750A4),
+                  backgroundColor: const Color(0xFF00B4D8),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

@@ -6,6 +6,7 @@ import '../providers/events_provider.dart';
 import '../models/class_model.dart';
 import 'mark_attendance_screen.dart';
 import 'staff_event_screen.dart';
+import '../widgets/sticky_header_widget.dart';
 
 class StaffDashboard extends ConsumerStatefulWidget {
   const StaffDashboard({Key? key}) : super(key: key);
@@ -121,76 +122,25 @@ class _HomeScreen extends ConsumerWidget {
 
   const _HomeScreen({required this.user});
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning!';
-    if (hour < 17) return 'Good Afternoon!';
-    return 'Good Evening!';
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Header
-            Container(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hi ${_getGreeting()}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          user?.name ?? 'Staff',
-                          style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.notifications_none),
-                            onPressed: () {},
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  if (user?.designation != null)
-                    Text(
-                      user!.designation!,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                ],
-              ),
+            // Sticky Header
+            StickyHeader(
+              greeting: 'Home',
+              name: user?.name ?? 'Staff',
+              subtitle: user?.designation ?? 'Teacher',
             ),
 
-            const SizedBox(height: 12),
-
-            // Quick Actions
+            // Content
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.all(20),
                 children: [
                   _buildQuickLink(
                     context,
@@ -199,7 +149,7 @@ class _HomeScreen extends ConsumerWidget {
                     'Take attendance for your classes',
                     Icons.edit_calendar_outlined,
                     const Color(0xFF00B4D8),
-                    () => _navigateToAttendance(context, ref),
+                    () => _navigateToAttendance(context, ref, user),
                   ),
                   const SizedBox(height: 12),
                   _buildQuickLink(
@@ -299,26 +249,23 @@ class _HomeScreen extends ConsumerWidget {
     );
   }
 
-  void _navigateToAttendance(BuildContext context, WidgetRef ref) async {
+  void _navigateToAttendance(BuildContext context, WidgetRef ref, dynamic user) async {
     final classesState = ref.read(classesProvider);
     final classes = classesState.classes;
 
     if (classes.isEmpty) {
       // Load classes if not loaded
-      final user = ref.read(authProvider).user;
       if (user != null) {
         await ref.read(classesProvider.notifier).loadStaffClasses(user.id);
         final updatedClasses = ref.read(classesProvider).classes;
-        
         if (updatedClasses.isEmpty) {
           if (context.mounted) {
             _showSnackbar(context, 'No classes assigned');
           }
           return;
         }
-        
         if (context.mounted) {
-          _showClassSelectionDialog(context, ref, updatedClasses);
+          _showClassSelectionDialog(context, ref, updatedClasses, user);
         }
       }
     } else if (classes.length == 1) {
@@ -335,12 +282,12 @@ class _HomeScreen extends ConsumerWidget {
       }
     } else {
       if (context.mounted) {
-        _showClassSelectionDialog(context, ref, classes);
+        _showClassSelectionDialog(context, ref, classes, user);
       }
     }
   }
 
-  void _showClassSelectionDialog(BuildContext context, WidgetRef ref, List<AssignedClass> classes) {
+  void _showClassSelectionDialog(BuildContext context, WidgetRef ref, List<AssignedClass> classes, dynamic user) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -427,22 +374,19 @@ class _ClassesScreen extends ConsumerWidget {
     final classesState = ref.watch(classesProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              child: const Text(
-                'My Classes',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
+            // Sticky Header
+            StickyHeader(
+              greeting: 'Classes',
+              name: user?.name ?? 'Staff',
+              subtitle: user?.designation ?? 'Teacher',
             ),
+
+            // Content
             Expanded(
               child: classesState.isLoading
                   ? const Center(
@@ -477,13 +421,14 @@ class _ClassesScreen extends ConsumerWidget {
                           },
                           color: const Color(0xFF00B4D8),
                           child: ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            padding: const EdgeInsets.all(20),
                             itemCount: classesState.classes.length,
                             itemBuilder: (context, index) {
                               final cls = classesState.classes[index];
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 decoration: BoxDecoration(
+                                  color: Colors.white,
                                   border: Border.all(color: Colors.grey[300]!),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -526,7 +471,6 @@ class _ClassesScreen extends ConsumerWidget {
   Future<void> _viewStudents(BuildContext context, WidgetRef ref, AssignedClass cls) async {
     // Load students for this class
     await ref.read(classesProvider.notifier).loadClassStudents(cls.classId);
-    
     if (!context.mounted) return;
 
     final students = ref.read(classesProvider).classStudents[cls.classId];
@@ -621,26 +565,90 @@ class _ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Sticky Header
+            StickyHeader(
+              greeting: 'Profile',
+              name: user?.name ?? 'Staff',
+              subtitle: user?.designation ?? 'Teacher',
+            ),
+
+            // Content
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
                 children: [
-                  const Text(
-                    'Profile',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                  // Profile Card
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundColor: const Color(0xFF00B4D8),
+                          child: Text(
+                            user?.name[0].toUpperCase() ?? 'S',
+                            style: const TextStyle(
+                              fontSize: 32,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          user?.name ?? 'Staff',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          user?.designation ?? 'Teacher',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.logout),
+                  const SizedBox(height: 24),
+
+                  // Info Cards
+                  _ProfileInfoCard(
+                    icon: Icons.phone_outlined,
+                    title: 'Phone Number',
+                    value: user?.phoneNumber ?? 'N/A',
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileInfoCard(
+                    icon: Icons.work_outline,
+                    title: 'Designation',
+                    value: user?.designation ?? 'N/A',
+                  ),
+                  if (user?.subjects != null && user!.subjects!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _ProfileInfoCard(
+                      icon: Icons.book_outlined,
+                      title: 'Subjects',
+                      value: user!.subjects!.join(', '),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+
+                  // Logout Button
+                  ElevatedButton.icon(
                     onPressed: () {
                       showDialog(
                         context: context,
@@ -666,81 +674,23 @@ class _ProfileScreen extends ConsumerWidget {
                                   );
                                 }
                               },
-                              child: const Text('Logout'),
+                              child: const Text('Logout', style: TextStyle(color: Colors.red)),
                             ),
                           ],
                         ),
                       );
                     },
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: const Color(0xFF00B4D8),
-                    child: Text(
-                      user?.name[0].toUpperCase() ?? 'S',
-                      style: const TextStyle(
-                        fontSize: 32,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Logout', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    user?.name ?? 'Staff',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    user?.designation ?? 'Teacher',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  _ProfileInfoCard(
-                    icon: Icons.phone_outlined,
-                    title: 'Phone Number',
-                    value: user?.phoneNumber ?? 'N/A',
-                  ),
-                  const SizedBox(height: 12),
-                  _ProfileInfoCard(
-                    icon: Icons.work_outline,
-                    title: 'Designation',
-                    value: user?.designation ?? 'N/A',
-                  ),
-                  if (user?.subjects != null && user!.subjects!.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    _ProfileInfoCard(
-                      icon: Icons.book_outlined,
-                      title: 'Subjects',
-                      value: user!.subjects!.join(', '),
-                    ),
-                  ],
                 ],
               ),
             ),

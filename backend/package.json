@@ -1,7 +1,7 @@
 {
-  "name": "school-management-backend",
+  "name": "ramakrishna-school-backend",
   "version": "1.0.0",
-  "description": "School Management System Backend API",
+  "description": "ramakrishna-school",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",

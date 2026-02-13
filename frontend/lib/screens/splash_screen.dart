@@ -10,7 +10,7 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> 
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -19,7 +19,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void initState() {
     super.initState();
-    
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -45,13 +45,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   Future<void> _checkAuthAndNavigate() async {
     await Future.delayed(const Duration(seconds: 2));
-    
     await ref.read(authProvider.notifier).checkAuthStatus();
-    
+
     if (!mounted) return;
 
     final authState = ref.read(authProvider);
-    
     if (authState.isAuthenticated && authState.user != null) {
       if (authState.user!.isStaff) {
         Navigator.pushReplacementNamed(context, '/staff-dashboard');
@@ -81,18 +79,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           opacity: _fadeAnimation,
           child: ScaleTransition(
             scale: _scaleAnimation,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: const Color(0xFF00B4D8).withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.school_rounded,
-                size: 70,
-                color: Color(0xFF00B4D8),
-              ),
+            child: Image.asset(
+              'assets/images/logo.png', // Your logo path
+              width: 200, // Adjust size as needed
+              height: 200, // Adjust size as needed
             ),
           ),
         ),
