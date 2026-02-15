@@ -4,15 +4,18 @@ import { authMiddleware } from '../middleware/auth.middleware';
 import { 
   authLimiter, 
   passwordResetLimiter, 
-  registrationLimiter,
   checkAccountLockout 
 } from '../middleware/rate-limit.middleware';
 
 const router = express.Router();
 
-// Public routes with rate limiting
-router.post('/pre-register', registrationLimiter, AuthController.preRegister);
-router.post('/complete-registration', registrationLimiter, AuthController.completeRegistration);
+// Admin routes - NO rate limiting for admin dashboard
+router.post('/admin/pre-register', AuthController.preRegister);
+router.post('/admin/complete-registration', AuthController.completeRegistration);
+
+// Public routes with rate limiting (for mobile app)
+router.post('/pre-register', authLimiter, AuthController.preRegister);
+router.post('/complete-registration', authLimiter, AuthController.completeRegistration);
 router.post('/login', authLimiter, checkAccountLockout, AuthController.login);
 router.post('/reset-password', passwordResetLimiter, AuthController.resetPassword);
 
