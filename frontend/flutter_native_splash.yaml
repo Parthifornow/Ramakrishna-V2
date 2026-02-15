@@ -1,39 +1,29 @@
+# Flutter Native Splash Configuration
+# Matches your custom splash screen style
+
 flutter_native_splash:
-  # Background color (pure white to match your app theme)
+  # White background (matching your custom splash)
   color: "#FFFFFF"
   
-  # Background color for dark mode (keeping it white for consistency)
-  color_dark: "#FFFFFF"
+  # Your school logo
+  image: assets/images/logo.png
   
-  # Android 12+ specific configuration
-  android_12:
-    # Background color for Android 12+
-    color: "#FFFFFF"
-    
-    # Icon background color (light blue circle matching your app's color scheme)
-    icon_background_color: "#E3F2FD"
-    
-    # If you add an image later, it will appear here
-    # Uncomment and use when you have an icon:
-    # image: assets/images/school_icon.png
-    
-    # Branding image (optional - shows at bottom of splash)
-    # branding: assets/images/branding.png
-  
-  # Platform support
+  # Android settings
   android: true
-  ios: true
-  web: false
-  
-  # Display mode
-  fullscreen: true
-  
-  # Android-specific settings
   android_gravity: center
   
-  # iOS-specific settings  
+  # Android 12+ (Material You)
+  android_12:
+    image: assets/images/logo.png
+    color: "#FFFFFF"
+    icon_background_color: "#FFFFFF"
+  
+  # iOS settings
+  ios: true
   ios_content_mode: center
   
-  # Info.plist files for iOS (default locations)
-  info_plist_files:
-    - 'ios/Runner/Info.plist'
+  # Fullscreen (removes status bar like your custom splash)
+  fullscreen: true
+  
+  # Web (optional)
+  web: false
